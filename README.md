@@ -2,6 +2,26 @@
 
 **TODO: Add description**
 
+## Features
+
+**TODO: Add description**
+
+### Validations
+
+- Array value validation
+- Map value validation
+
+### Unique validations
+
+- Unlimited nested maps
+- Array item validation
+
+### Extensions
+
+- JSON:API
+- Email regex
+- Password regex
+
 ## Installation
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
@@ -19,3 +39,6 @@ Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_do
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at <https://hexdocs.pm/goal>.
 
+## Usage
+
+**TODO: Add description**

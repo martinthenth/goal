@@ -2,11 +2,12 @@ defmodule GoalTest do
   use ExUnit.Case
 
   describe "validate/2" do
+    @tag :skip
     test "example" do
       data = %{
         "id" => "1",
         "uuid" => "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
-        "string" => "Daisy",
+        "string" => "Jane",
         "trimmed_string" => " human ",
         "squished_string" => " homo  sapien ",
         "integer" => 29,
@@ -25,7 +26,7 @@ defmodule GoalTest do
         },
         "float" => 60.5,
         "decimal" => 100.04,
-        "email" => "daisy.doe@example.com",
+        "email" => "jane.doe@example.com",
         "password" => "password123",
         "enum" => "female",
         "other" => "not in schema"
@@ -62,7 +63,7 @@ defmodule GoalTest do
                 %{
                   id: 1,
                   uuid: "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
-                  string: "Daisy",
+                  string: "Jane",
                   trimmed_string: "human",
                   squished_string: "homo sapien",
                   integer: 29,
@@ -81,10 +82,54 @@ defmodule GoalTest do
                   },
                   float: 60.5,
                   decimal: Decimal.from_float(100.04),
-                  email: "daisy.doe@example.com",
+                  email: "jane.doe@example.com",
                   password: "password123",
                   enum: :female
                 }}
     end
+
+    test "invalid nested map" do
+      data = %{
+        "key_1" => 1,
+        "map_1" => %{
+          "key_2" => 1,
+          "map_2" => %{
+            "key_3" => 2
+          }
+        }
+      }
+
+      schema = %{
+        key_1: [type: :string],
+        map_1: [
+          type: :map,
+          properties: %{
+            key_2: [type: :string],
+            map_2: [
+              type: :map,
+              properties: %{
+                key_3: [type: :string]
+              }
+            ]
+          }
+        ]
+      }
+
+      assert {:error, %Ecto.Changeset{} = changeset} = Goal.validate(data, schema)
+
+      # IO.inspect(changeset)
+      # IO.inspect(changeset.types)
+
+      assert errors_on(changeset) == %{is_admin: ["is invalid"]}
+    end
+  end
+
+  @spec errors_on(Ecto.Changeset.t()) :: map
+  defp errors_on(changeset) do
+    Ecto.Changeset.traverse_errors(changeset, fn {message, opts} ->
+      Regex.replace(~r"%{(\w+)}", message, fn _map, key ->
+        opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
+      end)
+    end)
   end
 end
