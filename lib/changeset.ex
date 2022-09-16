@@ -1,6 +1,6 @@
 defmodule Goal.Changeset do
   @moduledoc """
-  This module contains an adapted version of `Ecto.Changeset.traverse_errors/2`.
+  Goal.Changeset contains an adapted version of `Ecto.Changeset.traverse_errors/2`.
   """
 
   alias Ecto.Changeset
@@ -115,7 +115,7 @@ defmodule Goal.Changeset do
           acc
         end
 
-      # This clause allows traversing nested maps.
+      # This clause allows traversing nested maps
       {field, :map}, acc ->
         if changeset = Map.get(changes, field) do
           case traverse_function.(changeset, msg_func) do
