@@ -3,15 +3,6 @@ defmodule Goal do
   Documentation for `Goal`.
   """
 
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> Goal.hello()
-      :world
-
-  """
   def validate(params, schema) do
     types = get_types(schema)
     changeset = build_changeset(params, types, schema)
@@ -23,9 +14,7 @@ defmodule Goal do
   end
 
   defp build_changeset(params, types, schema) do
-    data = %{}
-
-    {data, types}
+    {%{}, types}
     |> Ecto.Changeset.cast(params, Map.keys(types))
     |> validate_complex_fields(types, schema)
   end
@@ -64,8 +53,6 @@ defmodule Goal do
 
             case inner_changeset do
               %Ecto.Changeset{valid?: false} ->
-                IO.inspect(acc.types)
-
                 acc
                 |> put_in([Access.key(:changes), Access.key(field)], inner_changeset)
                 |> Map.put(:valid?, false)

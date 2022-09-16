@@ -2,7 +2,6 @@ defmodule GoalTest do
   use ExUnit.Case
 
   describe "validate/2" do
-    @tag :skip
     test "example" do
       data = %{
         "id" => "1",
@@ -75,9 +74,9 @@ defmodule GoalTest do
                     "key" => "value"
                   },
                   nested_map: %{
-                    key: "value",
-                    map: %{
-                      key: "value"
+                    "key" => "value",
+                    "map" => %{
+                      "key" => "value"
                     }
                   },
                   float: 60.5,
@@ -117,16 +116,21 @@ defmodule GoalTest do
 
       assert {:error, %Ecto.Changeset{} = changeset} = Goal.validate(data, schema)
 
-      # IO.inspect(changeset)
-      # IO.inspect(changeset.types)
-
-      assert errors_on(changeset) == %{is_admin: ["is invalid"]}
+      assert errors_on(changeset) == %{
+               key_1: ["is invalid"],
+               map_1: %{
+                 key_2: ["is invalid"],
+                 map_2: %{
+                   key_3: ["is invalid"]
+                 }
+               }
+             }
     end
   end
 
   @spec errors_on(Ecto.Changeset.t()) :: map
   defp errors_on(changeset) do
-    Ecto.Changeset.traverse_errors(changeset, fn {message, opts} ->
+    Goal.Errors.traverse_errors(changeset, fn {message, opts} ->
       Regex.replace(~r"%{(\w+)}", message, fn _map, key ->
         opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
       end)
