@@ -130,7 +130,7 @@ defmodule GoalTest do
 
   @spec errors_on(Ecto.Changeset.t()) :: map
   defp errors_on(changeset) do
-    Goal.Errors.traverse_errors(changeset, fn {message, opts} ->
+    Goal.Changeset.traverse_errors(changeset, fn {message, opts} ->
       Regex.replace(~r"%{(\w+)}", message, fn _map, key ->
         opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
       end)

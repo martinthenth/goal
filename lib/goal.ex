@@ -3,17 +3,23 @@ defmodule Goal do
   Documentation for `Goal`.
   """
 
-  def validate(params, schema) do
-    types = get_types(schema)
-    changeset = build_changeset(params, types, schema)
+  alias Ecto.Changeset
 
-    case changeset do
+  @doc """
+  TODO: Add docs
+  """
+  @spec validate(map, map) :: {:ok, map} | {:error, Changeset.t()}
+  def validate(params, schema) do
+    schema
+    |> get_types()
+    |> build_changeset(params, schema)
+    |> case do
       %Ecto.Changeset{valid?: false} = changeset -> {:error, changeset}
       %Ecto.Changeset{valid?: true, changes: changes} -> {:ok, changes}
     end
   end
 
-  defp build_changeset(params, types, schema) do
+  defp build_changeset(types, params, schema) do
     {%{}, types}
     |> Ecto.Changeset.cast(params, Map.keys(types))
     |> validate_complex_fields(types, schema)
@@ -40,33 +46,31 @@ defmodule Goal do
   end
 
   defp validate_complex_fields(%Ecto.Changeset{changes: changes} = changeset, types, schema) do
-    Enum.reduce(types, changeset, fn {field, type}, acc ->
-      case type do
-        :map ->
-          inner_params = Map.get(changes, field)
-          inner_rules = Map.get(schema, field)
-          inner_schema = Keyword.get(inner_rules, :properties)
+    Enum.reduce(types, changeset, fn
+      {field, :map}, acc ->
+        inner_params = Map.get(changes, field)
+        inner_rules = Map.get(schema, field)
+        inner_schema = Keyword.get(inner_rules, :properties)
 
-          if inner_schema do
-            inner_types = get_types(inner_schema)
-            inner_changeset = build_changeset(inner_params, inner_types, inner_schema)
+        if inner_schema do
+          inner_schema
+          |> get_types()
+          |> build_changeset(inner_params, inner_schema)
+          |> case do
+            %Ecto.Changeset{valid?: true} ->
+              acc
 
-            case inner_changeset do
-              %Ecto.Changeset{valid?: false} ->
-                acc
-                |> put_in([Access.key(:changes), Access.key(field)], inner_changeset)
-                |> Map.put(:valid?, false)
-
-              %Ecto.Changeset{valid?: true} ->
-                acc
-            end
-          else
-            acc
+            %Ecto.Changeset{valid?: false} = inner_changeset ->
+              acc
+              |> put_in([Access.key(:changes), Access.key(field)], inner_changeset)
+              |> Map.put(:valid?, false)
           end
-
-        _any ->
+        else
           acc
-      end
+        end
+
+      {_field, _type}, acc ->
+        acc
     end)
   end
 end
