@@ -1,4 +1,4 @@
-defmodule Goal.Errors do
+defmodule Goal.Changeset do
   @moduledoc """
   This module contains an adapted version of `Ecto.Changeset.traverse_errors/2`.
   """
@@ -7,7 +7,6 @@ defmodule Goal.Errors do
 
   @empty_values [""]
 
-  # If a new field is added here, def merge must be adapted
   defstruct valid?: false,
             data: nil,
             params: nil,
@@ -116,8 +115,7 @@ defmodule Goal.Errors do
           acc
         end
 
-      # This clause was added to traverse nested changesets
-      # where the field type is a map.
+      # This clause allows traversing nested maps.
       {field, :map}, acc ->
         if changeset = Map.get(changes, field) do
           case traverse_function.(changeset, msg_func) do
