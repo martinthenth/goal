@@ -12,10 +12,10 @@ defmodule Goal do
 
   ## Examples
 
-      iex> validate_params(%{"email" => "jane@example.com"}, %{email: [type: :string, format: :email]})
+      iex> validate_params(%{"email" => "jane@example.com"}, %{email: [format: :email]})
       {:ok, %{email: "jane@example.com"}}
 
-      iex> validate_params(%{"email" => "invalid"}, %{email: [type: :string, format: :email]})
+      iex> validate_params(%{"email" => "invalid"}, %{email: [format: :email]})
       {:error, %Ecto.Changeset{}}
 
   """
@@ -25,23 +25,69 @@ defmodule Goal do
     |> get_types()
     |> build_changeset(params, schema)
     |> case do
-      %Ecto.Changeset{valid?: false} = changeset -> {:error, changeset}
-      %Ecto.Changeset{valid?: true, changes: changes} -> {:ok, changes}
+      %Changeset{valid?: false} = changeset -> {:error, changeset}
+      %Changeset{valid?: true, changes: changes} -> {:ok, changes}
     end
+  end
+
+  defp get_types(schema) do
+    Enum.reduce(schema, %{}, fn {field, rules}, acc ->
+      case Keyword.get(rules, :type, :string) do
+        :enum ->
+          values =
+            rules
+            |> Keyword.get(:values, [])
+            |> Enum.map(&String.to_atom/1)
+
+          Map.put(acc, field, {:parameterized, Ecto.Enum, Ecto.Enum.init(values: values)})
+
+        :list ->
+          Map.put(acc, field, {:array, Keyword.get(rules, :inner_type, :string)})
+
+        type ->
+          Map.put(acc, field, type)
+      end
+    end)
   end
 
   defp build_changeset(types, params, schema) do
     {%{}, types}
-    |> Ecto.Changeset.cast(params, Map.keys(types))
+    |> Changeset.cast(params, Map.keys(types))
+    |> validate_required_fields(schema)
     |> validate_simple_fields(schema)
     |> validate_nested_fields(types, schema)
   end
 
-  defp validate_simple_fields(%Ecto.Changeset{changes: changes} = changeset, schema) do
+  defp validate_required_fields(%Changeset{} = changeset, schema) do
+    required_fields =
+      Enum.reduce(schema, [], fn {field, rules}, acc ->
+        if Keyword.get(rules, :required, false) do
+          [field | acc]
+        else
+          acc
+        end
+      end)
+
+    validate_required(changeset, required_fields)
+  end
+
+  defp validate_simple_fields(%Changeset{changes: changes} = changeset, schema) do
     Enum.reduce(changes, changeset, fn {field, _value}, changeset_acc ->
       schema
       |> Map.get(field, [])
       |> Enum.reduce(changeset_acc, fn
+        {:equals, value}, inner_acc ->
+          validate_inclusion(inner_acc, field, [value])
+
+        {:is, integer}, inner_acc ->
+          validate_length(inner_acc, field, is: integer)
+
+        {:min, integer}, inner_acc ->
+          validate_length(inner_acc, field, min: integer)
+
+        {:max, integer}, inner_acc ->
+          validate_length(inner_acc, field, max: integer)
+
         {:trim, true}, inner_acc ->
           update_change(inner_acc, field, &String.trim/1)
 
@@ -84,7 +130,7 @@ defmodule Goal do
     end)
   end
 
-  defp validate_nested_fields(%Ecto.Changeset{changes: changes} = changeset, types, schema) do
+  defp validate_nested_fields(%Changeset{changes: changes} = changeset, types, schema) do
     Enum.reduce(types, changeset, fn
       {field, :map}, acc ->
         inner_params = Map.get(changes, field)
@@ -96,10 +142,10 @@ defmodule Goal do
           |> get_types()
           |> build_changeset(inner_params, inner_schema)
           |> case do
-            %Ecto.Changeset{valid?: true} ->
+            %Changeset{valid?: true} ->
               acc
 
-            %Ecto.Changeset{valid?: false} = inner_changeset ->
+            %Changeset{valid?: false} = inner_changeset ->
               acc
               |> put_in([Access.key(:changes), Access.key(field)], inner_changeset)
               |> Map.put(:valid?, false)
@@ -110,26 +156,6 @@ defmodule Goal do
 
       {_field, _type}, acc ->
         acc
-    end)
-  end
-
-  defp get_types(schema) do
-    Enum.reduce(schema, %{}, fn {field, rules}, acc ->
-      case Keyword.get(rules, :type, :string) do
-        :enum ->
-          values =
-            rules
-            |> Keyword.get(:values, [])
-            |> Enum.map(&String.to_atom/1)
-
-          Map.put(acc, field, {:parameterized, Ecto.Enum, Ecto.Enum.init(values: values)})
-
-        :list ->
-          Map.put(acc, field, {:array, Keyword.get(rules, :inner_type, :string)})
-
-        type ->
-          Map.put(acc, field, type)
-      end
     end)
   end
 end

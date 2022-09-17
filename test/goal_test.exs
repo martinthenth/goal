@@ -4,14 +4,18 @@ defmodule GoalTest do
   describe "validate_params/2" do
     test "valid example" do
       data = %{
+        "required" => "required",
         "id" => "1",
         "uuid" => "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
         "string" => "Jane",
+        "is_string" => "Joly",
+        "min_string" => "John",
+        "max_string" => "Joe",
         "trimmed_string" => " human ",
         "squished_string" => " homo  sapien ",
         "integer" => 29,
-        "min_integer" => 5,
-        "max_integer" => 9,
+        "less_than_integer" => 5,
+        "greater_than_integer" => 9,
         "list" => ["1", "2"],
         "integer_list" => [1, 2],
         "boolean_list" => [true, false],
@@ -35,14 +39,18 @@ defmodule GoalTest do
       }
 
       schema = %{
+        required: [required: true],
         id: [type: :integer],
         uuid: [type: :string, format: :uuid],
         string: [type: :string],
+        is_string: [type: :string, is: 4],
+        min_string: [type: :string, min: 2],
+        max_string: [type: :string, max: 5],
         trimmed_string: [type: :string, trim: true],
         squished_string: [type: :string, squish: true],
         integer: [type: :integer],
-        min_integer: [type: :integer, min: 3],
-        max_integer: [type: :integer, min: 10],
+        less_than_integer: [type: :integer, less_than: 10],
+        greater_than_integer: [type: :integer, greater_than: 3],
         list: [type: :list],
         integer_list: [type: :list, inner_type: :integer],
         boolean_list: [type: :list, inner_type: :boolean],
@@ -66,14 +74,18 @@ defmodule GoalTest do
       assert Goal.validate_params(data, schema) ==
                {:ok,
                 %{
+                  required: "required",
                   id: 1,
                   uuid: "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
                   string: "Jane",
+                  is_string: "Joly",
+                  min_string: "John",
+                  max_string: "Joe",
                   trimmed_string: "human",
                   squished_string: "homo sapien",
                   integer: 29,
-                  max_integer: 9,
-                  min_integer: 5,
+                  less_than_integer: 5,
+                  greater_than_integer: 9,
                   list: ["1", "2"],
                   integer_list: [1, 2],
                   boolean_list: [true, false],
@@ -94,6 +106,57 @@ defmodule GoalTest do
                   url: "https://www.example.com",
                   enum: :female
                 }}
+    end
+
+    test "required: true" do
+      schema = %{field: [required: true]}
+
+      data_1 = %{"field" => "yes"}
+      data_2 = %{}
+
+      assert Goal.validate_params(data_1, schema) == {:ok, %{field: "yes"}}
+
+      assert {:error, %Ecto.Changeset{errors: [field: _]}} = Goal.validate_params(data_2, schema)
+    end
+
+    test "equals: value" do
+      schema = %{option: [equals: "value"]}
+
+      data_1 = %{"option" => "value"}
+      data_2 = %{"option" => "notvalue"}
+
+      assert Goal.validate_params(data_1, schema) == {:ok, %{option: "value"}}
+      assert {:error, %Ecto.Changeset{errors: [option: _]}} = Goal.validate_params(data_2, schema)
+    end
+
+    test "string, min: 4" do
+      schema = %{name: [type: :string, is: 4]}
+
+      data_1 = %{"name" => "Jane"}
+      data_2 = %{"name" => "Joe"}
+
+      assert Goal.validate_params(data_1, schema) == {:ok, %{name: "Jane"}}
+      assert {:error, %Ecto.Changeset{errors: [name: _]}} = Goal.validate_params(data_2, schema)
+    end
+
+    test "string, min: 5" do
+      schema = %{name: [type: :string, min: 5]}
+
+      data_1 = %{"name" => "Jonathan"}
+      data_2 = %{"name" => "Jane"}
+
+      assert Goal.validate_params(data_1, schema) == {:ok, %{name: "Jonathan"}}
+      assert {:error, %Ecto.Changeset{errors: [name: _]}} = Goal.validate_params(data_2, schema)
+    end
+
+    test "string, max: 5" do
+      schema = %{name: [type: :string, max: 5]}
+
+      data_1 = %{"name" => "Jane"}
+      data_2 = %{"name" => "Jonathan"}
+
+      assert Goal.validate_params(data_1, schema) == {:ok, %{name: "Jane"}}
+      assert {:error, %Ecto.Changeset{errors: [name: _]}} = Goal.validate_params(data_2, schema)
     end
 
     test "string, trim: true" do
