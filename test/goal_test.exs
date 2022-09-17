@@ -24,7 +24,7 @@ defmodule GoalTest do
           "key" => "value"
         },
         "nested_map" => %{
-          "key" => "value",
+          "key" => "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
           "map" => %{
             "key" => "value"
           }
@@ -59,7 +59,7 @@ defmodule GoalTest do
         nested_map: [
           type: :map,
           properties: %{
-            key: [type: :string],
+            key: [type: :string, format: :uuid],
             map: [type: :map]
           }
         ],
@@ -94,7 +94,7 @@ defmodule GoalTest do
                     "key" => "value"
                   },
                   nested_map: %{
-                    "key" => "value",
+                    "key" => "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
                     "map" => %{
                       "key" => "value"
                     }
