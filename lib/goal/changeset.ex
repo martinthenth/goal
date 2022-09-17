@@ -83,6 +83,7 @@ defmodule Goal.Changeset do
     end)
   end
 
+  # credo:disable-for-this-file Credo.Check.Refactor.CyclomaticComplexity
   defp merge_related_keys(_, _, nil, _, _) do
     raise ArgumentError, "changeset does not have types information"
   end
