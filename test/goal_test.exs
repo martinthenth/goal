@@ -348,6 +348,47 @@ defmodule GoalTest do
                }
              }
     end
+
+    test "mixed nested map" do
+      data = %{
+        "key_1" => "hello",
+        "map_1" => %{
+          "key_2" => 1,
+          "map_2" => %{
+            "key_3" => "world",
+            "key_4" => 2
+          }
+        }
+      }
+
+      schema = %{
+        key_1: [type: :string],
+        map_1: [
+          type: :map,
+          properties: %{
+            key_2: [type: :string],
+            map_2: [
+              type: :map,
+              properties: %{
+                key_3: [type: :string],
+                key_4: [type: :string]
+              }
+            ]
+          }
+        ]
+      }
+
+      assert {:error, %Ecto.Changeset{} = changeset} = Goal.validate_params(data, schema)
+
+      assert errors_on(changeset) == %{
+               map_1: %{
+                 key_2: ["is invalid"],
+                 map_2: %{
+                   key_4: ["is invalid"]
+                 }
+               }
+             }
+    end
   end
 
   defp errors_on(changeset) do
