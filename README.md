@@ -1,6 +1,6 @@
-# Goal
+# Goal 🥅
 
-A library for parsing and validating parameters. It takes the `params` received from an Phoenix controller action, validates them, and returns the params as an atom-based map. It's based on `ecto` (https://github.com/elixir-ecto/ecto), so every validation that you have for database fields can be applied in validating parameters.
+A library for parsing and validating parameters. It takes the `params` (e.g. from an Phoenix controller action), validates them, and returns an atom-based map or an error changeset. It's based on `ecto` (https://github.com/elixir-ecto/ecto), so every validation that you have for database fields can be applied in validating parameters.
 
 > This library is in active development. You're free to use it, but for a stable version you should wait until it is published on Hex.pm.
 

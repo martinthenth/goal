@@ -20,8 +20,7 @@ defmodule Goal.MixProject do
   defp deps do
     [
       {:ecto, "~> 3.7"},
-      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.0", only: [:dev], runtime: false}
+      {:credo, "~> 1.6", only: [:dev, :test], runtime: false}
     ]
   end
 end

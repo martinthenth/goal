@@ -69,6 +69,16 @@ defmodule Goal.Changeset do
     |> merge_related_keys(changes, types, msg_func, &traverse_errors/2)
   end
 
+  def traverse_errors(changes, msg_func) when is_map(changes) do
+    Enum.reduce(changes, %{}, fn
+      {_field, %Changeset{} = changeset}, acc ->
+        Map.put(acc, :field, traverse_errors(changeset, msg_func))
+
+      {_field, _value}, acc ->
+        acc
+    end)
+  end
+
   defp merge_keyword_keys(keyword_list, msg_func, _) when is_function(msg_func, 1) do
     Enum.reduce(keyword_list, %{}, fn {key, val}, acc ->
       val = msg_func.(val)
