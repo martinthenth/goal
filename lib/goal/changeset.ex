@@ -1,6 +1,7 @@
 defmodule Goal.Changeset do
   @moduledoc """
-  Goal.Changeset contains an adapted version of `Ecto.Changeset.traverse_errors/2`.
+  Goal.Changeset contains an adapted version of `Ecto.Changeset.traverse_errors/2`
+  (https://github.com/elixir-ecto/ecto).
   """
 
   alias Ecto.Changeset
@@ -132,6 +133,7 @@ defmodule Goal.Changeset do
   defp merge_related_keys(map, changes, types, msg_func, traverse_function) do
     Enum.reduce(types, map, fn
       {field, {tag, %{cardinality: :many}}}, acc when tag in @relations ->
+        # TODO: Move this to own function
         if changesets = Map.get(changes, field) do
           {child, all_empty?} =
             Enum.map_reduce(changesets, true, fn changeset, all_empty? ->
@@ -148,10 +150,29 @@ defmodule Goal.Changeset do
         end
 
       {field, {tag, %{cardinality: :one}}}, acc when tag in @relations ->
+        # TODO: Move this to own function
         if changeset = Map.get(changes, field) do
           case traverse_function.(changeset, msg_func) do
             child when child == %{} -> acc
             child -> Map.put(acc, field, child)
+          end
+        else
+          acc
+        end
+
+      # This clause allows traversing maps in lists
+      {field, {:array, :map}}, acc ->
+        # TODO: Move this to own function
+        if changesets = Map.get(changes, field) do
+          {child, all_empty?} =
+            Enum.map_reduce(changesets, true, fn changeset, all_empty? ->
+              child = traverse_function.(changeset, msg_func)
+              {child, all_empty? and child == %{}}
+            end)
+
+          case all_empty? do
+            true -> acc
+            false -> Map.put(acc, field, child)
           end
         else
           acc
@@ -159,6 +180,7 @@ defmodule Goal.Changeset do
 
       # This clause allows traversing nested maps
       {field, :map}, acc ->
+        # TODO: Move this to own function
         if changeset = Map.get(changes, field) do
           case traverse_function.(changeset, msg_func) do
             child when child == %{} -> acc
@@ -168,7 +190,7 @@ defmodule Goal.Changeset do
           acc
         end
 
-      {_, _}, acc ->
+      {_field, _type}, acc ->
         acc
     end)
   end

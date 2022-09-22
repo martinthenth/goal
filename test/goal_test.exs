@@ -310,16 +310,6 @@ defmodule GoalTest do
     end
 
     test "invalid nested map" do
-      data = %{
-        "key_1" => 1,
-        "map_1" => %{
-          "key_2" => 1,
-          "map_2" => %{
-            "key_3" => 2
-          }
-        }
-      }
-
       schema = %{
         key_1: [type: :string],
         map_1: [
@@ -334,6 +324,16 @@ defmodule GoalTest do
             ]
           }
         ]
+      }
+
+      data = %{
+        "key_1" => 1,
+        "map_1" => %{
+          "key_2" => 1,
+          "map_2" => %{
+            "key_3" => 2
+          }
+        }
       }
 
       assert {:error, %Ecto.Changeset{} = changeset} = Goal.validate_params(data, schema)
@@ -390,6 +390,120 @@ defmodule GoalTest do
                    string_4: ["is invalid"]
                  }
                }
+             }
+    end
+
+    test "list" do
+      data = %{
+        "list" => [
+          "one",
+          "two",
+          "three"
+        ]
+      }
+
+      schema = %{
+        list: [type: :list, inner_type: :string]
+      }
+
+      assert Goal.validate_params(data, schema) == {:ok, %{list: ["one", "two", "three"]}}
+    end
+
+    test "invalid list" do
+      data = %{
+        "list" => [
+          "one",
+          "two",
+          "three"
+        ]
+      }
+
+      schema = %{
+        list: [type: :list, inner_type: :integer]
+      }
+
+      assert {:error, %Ecto.Changeset{} = changeset} = Goal.validate_params(data, schema)
+
+      assert errors_on(changeset) == %{list: ["is invalid"]}
+    end
+
+    test "list of maps" do
+      data = %{
+        "list" => [
+          %{"string" => "hello"},
+          %{"string" => "world"}
+        ]
+      }
+
+      schema = %{
+        list: [type: :list, inner_type: :map]
+      }
+
+      assert Goal.validate_params(data, schema) ==
+               {:ok, %{list: [%{"string" => "hello"}, %{"string" => "world"}]}}
+    end
+
+    test "list of defined maps" do
+      data = %{
+        "list" => [
+          %{"string" => "hello", "integer" => 1},
+          %{"string" => "world", "integer" => 2}
+        ]
+      }
+
+      schema = %{
+        list: [
+          type: :list,
+          inner_type: :map,
+          properties: %{
+            string: [type: :string],
+            integer: [type: :integer]
+          }
+        ]
+      }
+
+      assert Goal.validate_params(data, schema) ==
+               {:ok,
+                %{
+                  list: [
+                    %{string: "hello", integer: 1},
+                    %{string: "world", integer: 2}
+                  ]
+                }}
+    end
+
+    test "list of invalid defined maps" do
+      data = %{
+        "list" => [
+          %{"string" => 1, "integer" => "hello"},
+          %{"string" => 2, "integer" => "world"}
+        ]
+      }
+
+      schema = %{
+        list: [
+          type: :list,
+          inner_type: :map,
+          properties: %{
+            string: [format: :uuid],
+            integer: [type: :integer]
+          }
+        ]
+      }
+
+      assert {:error, %Ecto.Changeset{} = changeset} = Goal.validate_params(data, schema)
+
+      assert errors_on(changeset) == %{
+               list: [
+                 %{
+                   string: ["is invalid"],
+                   integer: ["is invalid"]
+                 },
+                 %{
+                   string: ["is invalid"],
+                   integer: ["is invalid"]
+                 }
+               ]
              }
     end
 
