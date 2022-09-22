@@ -53,7 +53,7 @@ defmodule Goal do
     {%{}, types}
     |> Changeset.cast(params, Map.keys(types))
     |> validate_required_fields(schema)
-    |> validate_simple_fields(schema)
+    |> validate_basic_fields(schema)
     |> validate_nested_fields(types, schema)
   end
 
@@ -70,62 +70,74 @@ defmodule Goal do
     validate_required(changeset, required_fields)
   end
 
-  defp validate_simple_fields(%Changeset{changes: changes} = changeset, schema) do
+  defp validate_basic_fields(%Changeset{changes: changes} = changeset, schema) do
     Enum.reduce(changes, changeset, fn {field, _value}, changeset_acc ->
       schema
       |> Map.get(field, [])
-      |> Enum.reduce(changeset_acc, fn
-        {:equals, value}, inner_acc ->
-          validate_inclusion(inner_acc, field, [value])
+      |> validate_fields(field, changeset_acc)
+    end)
+  end
 
-        {:is, integer}, inner_acc ->
-          validate_length(inner_acc, field, is: integer)
+  defp validate_fields(rules, field, changeset) do
+    Enum.reduce(rules, changeset, fn
+      {:equals, value}, inner_acc ->
+        validate_inclusion(inner_acc, field, [value])
 
-        {:min, integer}, inner_acc ->
-          validate_length(inner_acc, field, min: integer)
+      {:is, integer}, inner_acc ->
+        validate_length(inner_acc, field, is: integer)
 
-        {:max, integer}, inner_acc ->
-          validate_length(inner_acc, field, max: integer)
+      {:min, integer}, inner_acc ->
+        change = get_in(inner_acc, [Access.key(:changes), Access.key(field)])
 
-        {:trim, true}, inner_acc ->
-          update_change(inner_acc, field, &String.trim/1)
+        if is_integer(change),
+          do: validate_number(inner_acc, field, greater_than_or_equal_to: integer),
+          else: validate_length(inner_acc, field, min: integer)
 
-        {:squish, true}, inner_acc ->
-          update_change(inner_acc, field, &Goal.String.squish/1)
+      {:max, integer}, inner_acc ->
+        change = get_in(inner_acc, [Access.key(:changes), Access.key(field)])
 
-        {:format, :uuid}, inner_acc ->
-          validate_format(inner_acc, field, Goal.Regex.uuid())
+        if is_integer(change),
+          do: validate_number(inner_acc, field, less_than_or_equal_to: integer),
+          else: validate_length(inner_acc, field, max: integer)
 
-        {:format, :email}, inner_acc ->
-          validate_format(inner_acc, field, Goal.Regex.email())
+      {:trim, true}, inner_acc ->
+        update_change(inner_acc, field, &String.trim/1)
 
-        {:format, :password}, inner_acc ->
-          validate_format(inner_acc, field, Goal.Regex.password())
+      {:squish, true}, inner_acc ->
+        update_change(inner_acc, field, &Goal.String.squish/1)
 
-        {:format, :url}, inner_acc ->
-          validate_format(inner_acc, field, Goal.Regex.url())
+      {:format, :uuid}, inner_acc ->
+        validate_format(inner_acc, field, Goal.Regex.uuid())
 
-        {:less_than, integer}, inner_acc ->
-          validate_number(inner_acc, field, less_than: integer)
+      {:format, :email}, inner_acc ->
+        validate_format(inner_acc, field, Goal.Regex.email())
 
-        {:greater_than, integer}, inner_acc ->
-          validate_number(inner_acc, field, greater_than: integer)
+      {:format, :password}, inner_acc ->
+        validate_format(inner_acc, field, Goal.Regex.password())
 
-        {:less_than_or_equal_to, integer}, inner_acc ->
-          validate_number(inner_acc, field, less_than_or_equal_to: integer)
+      {:format, :url}, inner_acc ->
+        validate_format(inner_acc, field, Goal.Regex.url())
 
-        {:greater_than_or_equal_to, integer}, inner_acc ->
-          validate_number(inner_acc, field, greater_than_or_equal_to: integer)
+      {:less_than, integer}, inner_acc ->
+        validate_number(inner_acc, field, less_than: integer)
 
-        {:equal_to, integer}, inner_acc ->
-          validate_number(inner_acc, field, equal_to: integer)
+      {:greater_than, integer}, inner_acc ->
+        validate_number(inner_acc, field, greater_than: integer)
 
-        {:not_equal_to, integer}, inner_acc ->
-          validate_number(inner_acc, field, not_equal_to: integer)
+      {:less_than_or_equal_to, integer}, inner_acc ->
+        validate_number(inner_acc, field, less_than_or_equal_to: integer)
 
-        {_name, _setting}, inner_acc ->
-          inner_acc
-      end)
+      {:greater_than_or_equal_to, integer}, inner_acc ->
+        validate_number(inner_acc, field, greater_than_or_equal_to: integer)
+
+      {:equal_to, integer}, inner_acc ->
+        validate_number(inner_acc, field, equal_to: integer)
+
+      {:not_equal_to, integer}, inner_acc ->
+        validate_number(inner_acc, field, not_equal_to: integer)
+
+      {_name, _setting}, inner_acc ->
+        inner_acc
     end)
   end
 
