@@ -8,7 +8,7 @@ defmodule Goal do
   alias Ecto.Changeset
 
   @doc """
-  Validates the given parameters against the given schema.
+  Validates the parameters against the schema.
 
   ## Examples
 
@@ -21,12 +21,9 @@ defmodule Goal do
   """
   @spec validate_params(map, map) :: {:ok, map} | {:error, Changeset.t()}
   def validate_params(params, schema) do
-    schema
-    |> get_types()
-    |> build_changeset(params, schema)
-    |> case do
-      %Changeset{valid?: false} = changeset -> {:error, changeset}
+    case build_changeset(params, schema) do
       %Changeset{valid?: true, changes: changes} -> {:ok, changes}
+      %Changeset{valid?: false} = changeset -> {:error, changeset}
     end
   end
 
@@ -50,7 +47,9 @@ defmodule Goal do
     end)
   end
 
-  defp build_changeset(types, params, schema) do
+  defp build_changeset(params, schema) do
+    types = get_types(schema)
+
     {%{}, types}
     |> Changeset.cast(params, Map.keys(types))
     |> validate_required_fields(schema)
@@ -137,10 +136,9 @@ defmodule Goal do
         inner_rules = Map.get(schema, field)
         inner_schema = Keyword.get(inner_rules, :properties)
 
-        if inner_schema do
-          inner_schema
-          |> get_types()
-          |> build_changeset(inner_params, inner_schema)
+        if inner_schema && inner_params do
+          inner_params
+          |> build_changeset(inner_schema)
           |> case do
             %Changeset{valid?: true} ->
               acc
