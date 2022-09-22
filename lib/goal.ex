@@ -140,8 +140,8 @@ defmodule Goal do
           inner_params
           |> build_changeset(inner_schema)
           |> case do
-            %Changeset{valid?: true} ->
-              acc
+            %Changeset{valid?: true, changes: changes} ->
+              put_in(acc, [Access.key(:changes), Access.key(field)], changes)
 
             %Changeset{valid?: false} = inner_changeset ->
               acc
