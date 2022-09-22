@@ -152,8 +152,36 @@ defmodule Goal do
           acc
         end
 
+      {field, {:array, :map}}, acc ->
+        inner_params = Map.get(changes, field)
+        inner_rules = Map.get(schema, field)
+        inner_schema = Keyword.get(inner_rules, :properties)
+
+        if inner_schema do
+          {valid?, changesets} =
+            Enum.reduce(inner_params, {true, []}, fn params, {boolean, list} ->
+              params
+              |> build_changeset(inner_schema)
+              |> case do
+                %Changeset{valid?: true, changes: changes} ->
+                  {boolean, append_to_list(list, changes)}
+
+                %Changeset{valid?: false} = inner_changeset ->
+                  {false, append_to_list(list, inner_changeset)}
+              end
+            end)
+
+          acc
+          |> put_in([Access.key(:changes), Access.key(field)], changesets)
+          |> Map.put(:valid?, valid?)
+        else
+          acc
+        end
+
       {_field, _type}, acc ->
         acc
     end)
   end
+
+  defp append_to_list(list, value), do: Enum.reverse([value | Enum.reverse(list)])
 end
