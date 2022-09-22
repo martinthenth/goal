@@ -100,7 +100,6 @@ defmodule Goal.Changeset do
     |> merge_related_keys(changes, types, msg_func, &traverse_errors/2)
   end
 
-  # This function enables traversing mixed nested maps (with valid and invalid values)
   def traverse_errors(changes, msg_func) when is_map(changes) do
     Enum.reduce(changes, %{}, fn
       {_field, %Changeset{} = changeset}, acc ->
@@ -125,7 +124,6 @@ defmodule Goal.Changeset do
     end)
   end
 
-  # credo:disable-for-this-file Credo.Check.Refactor.CyclomaticComplexity
   defp merge_related_keys(_, _, nil, _, _) do
     raise ArgumentError, "changeset does not have types information"
   end
@@ -133,65 +131,47 @@ defmodule Goal.Changeset do
   defp merge_related_keys(map, changes, types, msg_func, traverse_function) do
     Enum.reduce(types, map, fn
       {field, {tag, %{cardinality: :many}}}, acc when tag in @relations ->
-        # TODO: Move this to own function
-        if changesets = Map.get(changes, field) do
-          {child, all_empty?} =
-            Enum.map_reduce(changesets, true, fn changeset, all_empty? ->
-              child = traverse_function.(changeset, msg_func)
-              {child, all_empty? and child == %{}}
-            end)
-
-          case all_empty? do
-            true -> acc
-            false -> Map.put(acc, field, child)
-          end
-        else
-          acc
-        end
+        traverse_changesets(acc, changes, field, msg_func, traverse_function)
 
       {field, {tag, %{cardinality: :one}}}, acc when tag in @relations ->
-        # TODO: Move this to own function
-        if changeset = Map.get(changes, field) do
-          case traverse_function.(changeset, msg_func) do
-            child when child == %{} -> acc
-            child -> Map.put(acc, field, child)
-          end
-        else
-          acc
-        end
+        traverse_changeset(acc, changes, field, msg_func, traverse_function)
 
-      # This clause allows traversing maps in lists
       {field, {:array, :map}}, acc ->
-        # TODO: Move this to own function
-        if changesets = Map.get(changes, field) do
-          {child, all_empty?} =
-            Enum.map_reduce(changesets, true, fn changeset, all_empty? ->
-              child = traverse_function.(changeset, msg_func)
-              {child, all_empty? and child == %{}}
-            end)
+        traverse_changesets(acc, changes, field, msg_func, traverse_function)
 
-          case all_empty? do
-            true -> acc
-            false -> Map.put(acc, field, child)
-          end
-        else
-          acc
-        end
-
-      # This clause allows traversing nested maps
       {field, :map}, acc ->
-        # TODO: Move this to own function
-        if changeset = Map.get(changes, field) do
-          case traverse_function.(changeset, msg_func) do
-            child when child == %{} -> acc
-            child -> Map.put(acc, field, child)
-          end
-        else
-          acc
-        end
+        traverse_changeset(acc, changes, field, msg_func, traverse_function)
 
       {_field, _type}, acc ->
         acc
     end)
+  end
+
+  defp traverse_changeset(acc, changes, field, msg_func, traverse_function) do
+    if changeset = Map.get(changes, field) do
+      case traverse_function.(changeset, msg_func) do
+        child when child == %{} -> acc
+        child -> Map.put(acc, field, child)
+      end
+    else
+      acc
+    end
+  end
+
+  defp traverse_changesets(acc, changes, field, msg_func, traverse_function) do
+    if changesets = Map.get(changes, field) do
+      {child, all_empty?} =
+        Enum.map_reduce(changesets, true, fn changeset, all_empty? ->
+          child = traverse_function.(changeset, msg_func)
+          {child, all_empty? and child == %{}}
+        end)
+
+      case all_empty? do
+        true -> acc
+        false -> Map.put(acc, field, child)
+      end
+    else
+      acc
+    end
   end
 end
