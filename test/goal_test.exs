@@ -351,27 +351,29 @@ defmodule GoalTest do
 
     test "mixed nested map" do
       data = %{
-        "key_1" => "hello",
+        "string_1" => "hello",
         "map_1" => %{
-          "key_2" => 1,
+          "uuid_1" => "123",
+          "string_2" => 1,
           "map_2" => %{
-            "key_3" => "world",
-            "key_4" => 2
+            "string_3" => "world",
+            "string_4" => 2
           }
         }
       }
 
       schema = %{
-        key_1: [type: :string],
+        string_1: [type: :string],
         map_1: [
           type: :map,
           properties: %{
-            key_2: [type: :string],
+            uuid_1: [format: :uuid],
+            string_2: [type: :string],
             map_2: [
               type: :map,
               properties: %{
-                key_3: [type: :string],
-                key_4: [type: :string]
+                string_3: [type: :string],
+                string_4: [type: :string]
               }
             ]
           }
@@ -382,11 +384,104 @@ defmodule GoalTest do
 
       assert errors_on(changeset) == %{
                map_1: %{
-                 key_2: ["is invalid"],
+                 uuid_1: ["has invalid format"],
+                 string_2: ["is invalid"],
                  map_2: %{
-                   key_4: ["is invalid"]
+                   string_4: ["is invalid"]
                  }
                }
+             }
+    end
+
+    test "missing schema rules" do
+      data = %{
+        "string_1" => "world",
+        "string_2" => "",
+        "map_1" => %{
+          "string_3" => "banana"
+        }
+      }
+
+      schema = %{
+        string_1: [type: :string]
+      }
+
+      assert Goal.validate_params(data, schema) == {:ok, %{string_1: "world"}}
+    end
+
+    test "missing data" do
+      data = %{
+        "string_1" => "world"
+      }
+
+      schema = %{
+        string_1: [type: :string],
+        string_2: [type: :string]
+      }
+
+      assert Goal.validate_params(data, schema) == {:ok, %{string_1: "world"}}
+    end
+
+    test "missing maps in data" do
+      data = %{
+        "string_1" => "world"
+      }
+
+      schema = %{
+        string_1: [type: :string],
+        string_2: [type: :string],
+        map_1: [
+          type: :map,
+          properties: %{
+            string_3: [type: :string],
+            string_4: [type: :string]
+          }
+        ]
+      }
+
+      assert Goal.validate_params(data, schema) == {:ok, %{string_1: "world"}}
+    end
+
+    test "missing required data" do
+      data = %{
+        "string_1" => "world"
+      }
+
+      schema = %{
+        string_1: [type: :string, required: true],
+        string_2: [type: :string, required: true]
+      }
+
+      assert {:error, %Ecto.Changeset{} = changeset} = Goal.validate_params(data, schema)
+
+      assert errors_on(changeset) == %{
+               string_2: ["can't be blank"]
+             }
+    end
+
+    test "missing required maps in data" do
+      data = %{
+        "string_1" => "world"
+      }
+
+      schema = %{
+        string_1: [type: :string, required: true],
+        string_2: [type: :string, required: true],
+        map_1: [
+          type: :map,
+          properties: %{
+            string_3: [type: :string],
+            string_4: [type: :string]
+          },
+          required: true
+        ]
+      }
+
+      assert {:error, %Ecto.Changeset{} = changeset} = Goal.validate_params(data, schema)
+
+      assert errors_on(changeset) == %{
+               string_2: ["can't be blank"],
+               map_1: ["can't be blank"]
              }
     end
   end
