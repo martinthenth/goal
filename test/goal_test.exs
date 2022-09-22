@@ -241,6 +241,28 @@ defmodule GoalTest do
       assert {:error, %Ecto.Changeset{errors: [url: _]}} = Goal.validate_params(data_2, schema)
     end
 
+    test "integer, min: 5" do
+      schema = %{age: [type: :integer, min: 5]}
+
+      data_1 = %{"age" => 6}
+      data_2 = %{"age" => 4}
+
+      assert Goal.validate_params(data_1, schema) == {:ok, %{age: 6}}
+
+      assert {:error, %Ecto.Changeset{errors: [age: _]}} = Goal.validate_params(data_2, schema)
+    end
+
+    test "integer, max: 10" do
+      schema = %{age: [type: :integer, max: 11]}
+
+      data_1 = %{"age" => 9}
+      data_2 = %{"age" => 12}
+
+      assert Goal.validate_params(data_1, schema) == {:ok, %{age: 9}}
+
+      assert {:error, %Ecto.Changeset{errors: [age: _]}} = Goal.validate_params(data_2, schema)
+    end
+
     test "integer, less_than: 10" do
       schema = %{age: [type: :integer, less_than: 11]}
 
