@@ -94,8 +94,8 @@ defmodule GoalTest do
                     "key" => "value"
                   },
                   nested_map: %{
-                    "key" => "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
-                    "map" => %{
+                    key: "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
+                    map: %{
                       "key" => "value"
                     }
                   },
@@ -309,6 +309,34 @@ defmodule GoalTest do
       assert {:error, %Ecto.Changeset{errors: [age: _]}} = Goal.validate_params(data_2, schema)
     end
 
+    test "map" do
+      data = %{
+        "map" => %{
+          "string" => "hello",
+          "integer" => 5
+        }
+      }
+
+      schema = %{
+        map: [
+          type: :map,
+          properties: %{
+            string: [type: :string],
+            integer: [type: :integer]
+          }
+        ]
+      }
+
+      assert Goal.validate_params(data, schema) ==
+               {:ok,
+                %{
+                  map: %{
+                    string: "hello",
+                    integer: 5
+                  }
+                }}
+    end
+
     test "invalid nested map" do
       schema = %{
         key_1: [type: :string],
@@ -427,7 +455,7 @@ defmodule GoalTest do
       assert errors_on(changeset) == %{list: ["is invalid"]}
     end
 
-    test "list of maps" do
+    test "list of undefined maps" do
       data = %{
         "list" => [
           %{"string" => "hello"},
@@ -443,7 +471,7 @@ defmodule GoalTest do
                {:ok, %{list: [%{"string" => "hello"}, %{"string" => "world"}]}}
     end
 
-    test "list of defined maps" do
+    test "list of maps" do
       data = %{
         "list" => [
           %{"string" => "hello", "integer" => 1},
@@ -472,7 +500,7 @@ defmodule GoalTest do
                 }}
     end
 
-    test "list of invalid defined maps" do
+    test "list of invalid maps" do
       data = %{
         "list" => [
           %{"string" => 1, "integer" => "hello"},
@@ -505,6 +533,70 @@ defmodule GoalTest do
                  }
                ]
              }
+    end
+
+    test "list of nested maps" do
+      data = %{
+        "list" => [
+          %{
+            "string" => "hello",
+            "integer" => 1,
+            "map" => %{
+              "string1" => "banana",
+              "string2" => "man"
+            }
+          },
+          %{
+            "string" => "world",
+            "integer" => 2,
+            "map" => %{
+              "string1" => "banana",
+              "string2" => "man"
+            }
+          }
+        ]
+      }
+
+      schema = %{
+        list: [
+          type: :list,
+          inner_type: :map,
+          properties: %{
+            string: [type: :string],
+            integer: [type: :integer],
+            map: [
+              type: :map,
+              properties: %{
+                string1: [type: :string],
+                string2: [type: :string]
+              }
+            ]
+          }
+        ]
+      }
+
+      assert Goal.validate_params(data, schema) ==
+               {:ok,
+                %{
+                  list: [
+                    %{
+                      string: "hello",
+                      integer: 1,
+                      map: %{
+                        string1: "banana",
+                        string2: "man"
+                      }
+                    },
+                    %{
+                      string: "world",
+                      integer: 2,
+                      map: %{
+                        string1: "banana",
+                        string2: "man"
+                      }
+                    }
+                  ]
+                }}
     end
 
     test "missing schema rules" do
