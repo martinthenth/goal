@@ -4,7 +4,7 @@ defmodule Goal.String do
   """
 
   @doc """
-  Returns a string where all leading, trailing, and excessive inner Unicode whitespaces have been removed.
+  Returns a string where all leading, trailing, and multiple inner Unicode whitespaces have been removed.
 
   ## Examples
 

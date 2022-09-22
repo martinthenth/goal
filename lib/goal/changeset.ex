@@ -56,6 +56,36 @@ defmodule Goal.Changeset do
 
   @relations [:embed, :assoc, :map]
 
+  @doc ~S"""
+  Traverses changeset errors and applies the given function to error messages.
+
+  This function is particularly useful when maps and nested maps
+  are cast in the changeset as it will traverse all associations and
+  embeds and place all errors in a series of nested maps.
+
+  A changeset is supplied along with a function to apply to each
+  error message as the changeset is traversed. The error message
+  function receives an error tuple `{msg, opts}`, for example:
+
+      {"should be at least %{count} characters", [count: 3, validation: :length, min: 3]}
+
+  ## Examples
+
+      iex> traverse_errors(changeset, fn {msg, opts} ->
+      ...>   Regex.replace(~r"%{(\w+)}", msg, fn _, key ->
+      ...>     opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
+      ...>   end)
+      ...> end)
+      %{title: ["should be at least 3 characters"]}
+
+  Optionally function can accept three arguments: `changeset`, `field`
+  and error tuple `{msg, opts}`. It is useful whenever you want to extract
+  validations rules from `changeset.validations` to build detailed error
+  description.
+
+  This function and documentation is gratefully copied and adapted
+  from https://github.com/elixir-ecto/ecto 🙇
+  """
   @spec traverse_errors(t, (error -> String.t()) | (Changeset.t(), atom, error -> String.t())) ::
           %{atom => [term]}
   def traverse_errors(
@@ -69,6 +99,7 @@ defmodule Goal.Changeset do
     |> merge_related_keys(changes, types, msg_func, &traverse_errors/2)
   end
 
+  # This function enables traversing mixed nested maps (with valid and invalid values)
   def traverse_errors(changes, msg_func) when is_map(changes) do
     Enum.reduce(changes, %{}, fn
       {_field, %Changeset{} = changeset}, acc ->
