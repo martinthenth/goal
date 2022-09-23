@@ -67,7 +67,11 @@ end
 `goal` has sensible defaults for string format validation. If you'd like to use your own regex, e.g. for validating email addresses or passwords, you can add your own regex in the configuration.
 
 ```elixir
-# TODO: Example config
+config :goal,
+  uuid_regex: ~r/^[[:alpha:]]+$/,
+  email_regex: ~r/^[[:alpha:]]+$/,
+  password_regex: ~r/^[[:alpha:]]+$/,
+  url_regex: ~r/^[[:alpha:]]+$/
 ```
 
 ### Deeply nested maps
@@ -75,7 +79,39 @@ end
 `goal` efficiently builds error changesets for nested maps. The only limitation on depth is your imagination (and computing resources).
 
 ```elixir
-# TODO: Example with nested map
+data = %{
+  "nested_map" => %{
+    "map" => %{
+      "inner_map" => %{
+        "list" => [1, 2, 3]
+      }
+    }
+  },
+}
+
+schema = %{
+  nested_map: [
+    type: :map,
+    properties: %{
+      map: [
+        type: :map,
+        properties: %{
+          inner_map: [
+            type: :map,
+            properties: %{
+              list: [type: :list, inner_type: :integer]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+iex(1)> data = %{...}
+iex(2)> schema = %{...}
+iex(3)> Goal.validate_params(data, schema)
+{:ok, %{nested_map: %{map: %{inner_map: %{list: [1, 2, 3]}}}}}
 ```
 
 ### Readable error messages
@@ -97,17 +133,16 @@ Every validation that you have for database fields when using `ecto` can be appl
 - `string` format validations (`uuid`, `email`, `password`)
 - `integer` value validations (`less_than`, `greater_than`, etc.)
 - `list` validations
-- `nested list` validations
 - `map` validations
 - `nested map` validations
-- `enum` validations
+- `enum` validations (`included`, `excluded`, `subset`)
 
 ## Roadmap
 
-- [ ] Bring your own regex
-- [ ] Convert incoming params from `camelCase` to `snake_case`
+- [x] Bring your own regex
 - [ ] ExDoc documentation
 - [ ] Release v0.1.0 on Hex.pm
+- [ ] Convert incoming params from `camelCase` to `snake_case`
 
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
