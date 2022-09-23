@@ -83,8 +83,21 @@ defmodule Goal do
       {:equals, value}, inner_acc ->
         validate_inclusion(inner_acc, field, [value])
 
+      {:excluded, values}, inner_acc ->
+        validate_exclusion(inner_acc, field, values)
+
+      {:included, values}, inner_acc ->
+        validate_inclusion(inner_acc, field, values)
+
+      {:subset, values}, inner_acc ->
+        validate_subset(inner_acc, field, values)
+
       {:is, integer}, inner_acc ->
-        validate_length(inner_acc, field, is: integer)
+        change = get_in(inner_acc, [Access.key(:changes), Access.key(field)])
+
+        if is_integer(change),
+          do: validate_number(inner_acc, field, equal_to: integer),
+          else: validate_length(inner_acc, field, is: integer)
 
       {:min, integer}, inner_acc ->
         change = get_in(inner_acc, [Access.key(:changes), Access.key(field)])
