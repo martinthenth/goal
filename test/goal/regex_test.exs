@@ -4,86 +4,114 @@ defmodule Goal.RegexTest do
   alias Goal.Regex
 
   describe "uuid/0" do
-    @regex Regex.uuid()
-
     test "with valid string, passes validation" do
-      assert String.match?("38fb9ab5-6353-47fe-9ff6-19e5fe0f4f46", @regex) == true
+      assert String.match?("38fb9ab5-6353-47fe-9ff6-19e5fe0f4f46", Regex.uuid()) == true
     end
 
     test "with invalid string, fails validation" do
-      assert String.match?("38fb9ab5-6353-47fe-9ff6-19e5fe0f4f46aa", @regex) == false
-      assert String.match?("uuid", @regex) == false
-      assert String.match?("123", @regex) == false
+      assert String.match?("38fb9ab5-6353-47fe-9ff6-19e5fe0f4f46aa", Regex.uuid()) == false
+      assert String.match?("uuid", Regex.uuid()) == false
+      assert String.match?("123", Regex.uuid()) == false
+    end
+
+    test "with user-defined regex" do
+      Application.put_env(:goal, :uuid_regex, ~r/^[[:alpha:]]+$/)
+
+      assert String.match?("abc", Regex.uuid()) == true
+      assert String.match?("123", Regex.uuid()) == false
+
+      Application.delete_env(:goal, :uuid_regex)
     end
   end
 
   describe "password/0" do
-    @regex Regex.password()
-
     test "with valid string, passes validation" do
-      assert String.match?("password123", @regex) == true
+      assert String.match?("password123", Regex.password()) == true
     end
 
     test "with invalid string, fails validation" do
-      assert String.match?("password", @regex) == false
-      assert String.match?("123", @regex) == false
+      assert String.match?("password", Regex.password()) == false
+      assert String.match?("123", Regex.password()) == false
+    end
+
+    test "with user-defined regex" do
+      Application.put_env(:goal, :password_regex, ~r/^[[:alpha:]]+$/)
+
+      assert String.match?("abc", Regex.password()) == true
+      assert String.match?("123", Regex.password()) == false
+
+      Application.delete_env(:goal, :password_regex)
     end
   end
 
   describe "email/0" do
-    @regex Regex.email()
-
     test "with valid string, passes validation" do
-      assert String.match?("jane@doe.com", @regex) == true
-      assert String.match?("bill.clinton@example.auction", @regex) == true
-      assert String.match?("j.h.doe@subdomain.user.com", @regex) == true
-      assert String.match?("linda+marie@doe.com", @regex) == true
-      assert String.match?("fringilla%mail@doe.com", @regex) == true
-      assert String.match?("j/h/doe@subdomain.user.com", @regex) == true
+      assert String.match?("jane@doe.com", Regex.email()) == true
+      assert String.match?("bill.clinton@example.auction", Regex.email()) == true
+      assert String.match?("j.h.doe@subdomain.user.com", Regex.email()) == true
+      assert String.match?("linda+marie@doe.com", Regex.email()) == true
+      assert String.match?("fringilla%mail@doe.com", Regex.email()) == true
+      assert String.match?("j/h/doe@subdomain.user.com", Regex.email()) == true
     end
 
     test "with invalid string, string misses TLD, fails validation" do
-      assert String.match?("jane@doe", @regex) == false
+      assert String.match?("jane@doe", Regex.email()) == false
     end
 
     test "with invalid string, string misses domain, fails validation" do
-      assert String.match?("jane@.com", @regex) == false
+      assert String.match?("jane@.com", Regex.email()) == false
     end
 
     test "with invalid string, string contains spaces, fails validation" do
-      assert String.match?("jane @doe.com", @regex) == false
+      assert String.match?("jane @doe.com", Regex.email()) == false
     end
 
     test "with invalid string, string contains special characters, fails validation" do
-      assert String.match?("bill@clinton@example.auction", @regex) == false
-      assert String.match?("chris@subdomain`.user.com", @regex) == false
-      assert String.match?("lea[]@example.com", @regex) == false
+      assert String.match?("bill@clinton@example.auction", Regex.email()) == false
+      assert String.match?("chris@subdomain`.user.com", Regex.email()) == false
+      assert String.match?("lea[]@example.com", Regex.email()) == false
+    end
+
+    test "with user-defined regex" do
+      Application.put_env(:goal, :email_regex, ~r/^[[:alpha:]]+$/)
+
+      assert String.match?("abc", Regex.email()) == true
+      assert String.match?("123", Regex.email()) == false
+
+      Application.delete_env(:goal, :email_regex)
     end
   end
 
   describe "url/0" do
-    @regex Regex.url()
-
     test "with valid string, passes validation" do
-      assert String.match?("https://www.example.com", @regex) == true
-      assert String.match?("http://example.com", @regex) == true
-      assert String.match?("http://subdomain.example.com", @regex) == true
-      assert String.match?("http://subdomain.subdomain.example.com", @regex) == true
-      assert String.match?("example.com", @regex) == true
+      assert String.match?("https://www.example.com", Regex.url()) == true
+      assert String.match?("http://example.com", Regex.url()) == true
+      assert String.match?("http://subdomain.example.com", Regex.url()) == true
+      assert String.match?("http://subdomain.subdomain.example.com", Regex.url()) == true
+      assert String.match?("example.com", Regex.url()) == true
     end
 
     test "with invalid string, string misses TLD, fails validation" do
-      assert String.match?("http://example", @regex) == false
-      assert String.match?("http://example.", @regex) == false
-      assert String.match?("http://example.c", @regex) == false
+      assert String.match?("http://example", Regex.url()) == false
+      assert String.match?("http://example.", Regex.url()) == false
+      assert String.match?("http://example.c", Regex.url()) == false
     end
 
     test "with invalid string, string misses domain, fails validation" do
-      assert String.match?("http://.com", @regex) == false
+      assert String.match?("http://.com", Regex.url()) == false
     end
 
     test "with invalid string, string contains spaces, fails validation" do
-      assert String.match?("http://examp le.com", @regex) == false
+      assert String.match?("http://examp le.com", Regex.url()) == false
+    end
+
+    test "with user-defined regex" do
+      Application.put_env(:goal, :url_regex, ~r/^[[:alpha:]]+$/)
+
+      assert String.match?("abc", Regex.url()) == true
+      assert String.match?("123", Regex.url()) == false
+
+      Application.delete_env(:goal, :url_regex)
     end
   end
 end
