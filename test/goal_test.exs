@@ -51,9 +51,9 @@ defmodule GoalTest do
         integer: [type: :integer],
         less_than_integer: [type: :integer, less_than: 10],
         greater_than_integer: [type: :integer, greater_than: 3],
-        list: [type: :list],
-        integer_list: [type: :list, inner_type: :integer],
-        boolean_list: [type: :list, inner_type: :boolean],
+        list: [type: {:array, :string}],
+        integer_list: [type: {:array, :integer}],
+        boolean_list: [type: {:array, :boolean}],
         boolean: [type: :boolean],
         map: [type: :map],
         nested_map: [
@@ -153,7 +153,7 @@ defmodule GoalTest do
     end
 
     test "subset: values" do
-      schema = %{integers: [type: :list, inner_type: :integer, subset: [1, 2, 3]]}
+      schema = %{integers: [type: {:array, :integer}, subset: [1, 2, 3]]}
 
       data_1 = %{"integers" => [1, 2, 3]}
       data_2 = %{"integers" => [4, 5, 6]}
@@ -500,7 +500,7 @@ defmodule GoalTest do
       }
 
       schema = %{
-        list: [type: :list, inner_type: :string]
+        list: [type: {:array, :string}]
       }
 
       assert Goal.validate_params(data, schema) == {:ok, %{list: ["one", "two", "three"]}}
@@ -512,7 +512,7 @@ defmodule GoalTest do
       }
 
       schema = %{
-        list: [type: :list, inner_type: :integer]
+        list: [type: {:array, :integer}]
       }
 
       assert {:error, %Ecto.Changeset{} = changeset} = Goal.validate_params(data, schema)
@@ -529,7 +529,7 @@ defmodule GoalTest do
       }
 
       schema = %{
-        list: [type: :list, inner_type: :map]
+        list: [type: {:array, :map}]
       }
 
       assert Goal.validate_params(data, schema) ==
@@ -546,8 +546,7 @@ defmodule GoalTest do
 
       schema = %{
         list: [
-          type: :list,
-          inner_type: :map,
+          type: {:array, :map},
           properties: %{
             string: [type: :string],
             integer: [type: :integer]
@@ -575,8 +574,7 @@ defmodule GoalTest do
 
       schema = %{
         list: [
-          type: :list,
-          inner_type: :map,
+          type: {:array, :map},
           properties: %{
             string: [format: :uuid],
             integer: [type: :integer]
@@ -624,8 +622,7 @@ defmodule GoalTest do
 
       schema = %{
         list: [
-          type: :list,
-          inner_type: :map,
+          type: {:array, :map},
           properties: %{
             string: [type: :string],
             integer: [type: :integer],
