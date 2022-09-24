@@ -1,6 +1,101 @@
 defmodule Goal do
-  @moduledoc """
-  Documentation for `Goal`.
+  @moduledoc ~S"""
+  Validate parameters using a rules schema.
+
+  The parameters can be any map, and can be string-based or atom-based. Goal uses the validation
+  rules from in `Ecto.Changeset`, which means you can use any validation that is available for
+  database fields for validating parameters with Goal.
+
+  A common use-case is parsing and validating parameters from Phoenix controllers:
+
+  ```elixir
+  defmodule MyApp.SomeController do
+    import Goal
+
+    @schema %{
+      id: [format: :uuid, required: true],
+      name: [min: 3, max: 20, required: true]
+    }
+
+    def create(conn, params) do
+      with {:ok, attrs} <- validate_params(params, @schema) do
+        ...
+      end
+    end
+  end
+  ```
+
+  ## Bring your own regex
+
+  oal has sensible defaults for string format validation. If you'd like to use your own regex,
+  e.g. for validating email addresses or passwords, you can add your own regex in your
+  application configuration.
+
+  ```elixir
+  config :goal,
+    uuid_regex: ~r/^[[:alpha:]]+$/,
+    email_regex: ~r/^[[:alpha:]]+$/,
+    password_regex: ~r/^[[:alpha:]]+$/,
+    url_regex: ~r/^[[:alpha:]]+$/
+  ```
+
+  ## Deeply nested maps
+
+  Goal efficiently builds error changesets for nested maps. There is no limitation on depth. If the
+  schema is becoming too verbose, you could consider splitting up the schema into reusable components.
+
+  ```elixir
+  data = %{
+    "nested_map" => %{
+      "map" => %{
+        "inner_map" => %{
+          "list" => [1, 2, 3]
+        }
+      }
+    }
+  }
+
+  schema = %{
+    nested_map: [
+      type: :map,
+      properties: %{
+        inner_map: [
+          type: :map,
+          properties: %{
+            map: [
+              type: :map,
+              properties: %{
+                list: [type: :list, inner_type: :integer]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+
+  iex(1)> data = %{...}
+  iex(2)> schema = %{...}
+  iex(3)> Goal.validate_params(data, schema)
+  {:ok, %{nested_map: %{inner_map: %{map: %{list: [1, 2, 3]}}}}}
+  ```
+
+  ## Human-readable error messages
+
+  Use `Goal.traverse_errors/2` to build readable errors. Ecto and Phoenix by default
+  use `Ecto.Changeset.traverse_errors/2`, which works for embedded Ecto schemas but not for the
+  plain nested maps used by Goal.
+
+  ```elixir
+  def translate_errors(changeset) do
+    Goal.traverse_errors(changeset, &translate_error/1)
+  end
+  ```
+
+  ## Credits
+
+  This library is based on [Ecto](https://github.com/elixir-ecto/ecto) and I had to copy and adapt
+  `Ecto.Changeset.traverse_errors/2`. Thanks for making such an awesome library! 🙇
   """
 
   import Ecto.Changeset
@@ -12,7 +107,7 @@ defmodule Goal do
   @type error :: {String.t(), Keyword.t()}
 
   @doc ~S"""
-  Validates parameters against a schema.
+  Validates the parameters against a schema.
 
   ## Examples
 

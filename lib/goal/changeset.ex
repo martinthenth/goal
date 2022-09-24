@@ -1,7 +1,8 @@
 defmodule Goal.Changeset do
   @moduledoc """
-  Goal.Changeset contains an adapted version of `Ecto.Changeset.traverse_errors/2`
-  (https://github.com/elixir-ecto/ecto).
+  Goal.Changeset contains an adapted version of `Ecto.Changeset.traverse_errors/2`.
+
+  You can use `traverse_errors/2` to build all errors into a series of nested maps.
   """
 
   alias Ecto.Changeset
@@ -60,9 +61,10 @@ defmodule Goal.Changeset do
   @doc ~S"""
   Traverses changeset errors and applies the given function to error messages.
 
-  This function is particularly useful when maps and nested maps
-  are cast in the changeset as it will traverse all associations and
-  embeds and place all errors in a series of nested maps.
+  This function is particularly useful when associations, embeds, maps
+  and nested maps are cast in the changeset as it will traverse all
+  associations, embeds, maps and nested maps and place all errors in a
+  series of nested maps.
 
   A changeset is supplied along with a function to apply to each
   error message as the changeset is traversed. The error message
@@ -85,7 +87,7 @@ defmodule Goal.Changeset do
   description.
 
   This function and documentation is gratefully copied and adapted
-  from https://github.com/elixir-ecto/ecto 🙇
+  from `Ecto.Changeset.traverse_errors/2` 🙇
   """
   @spec traverse_errors(t, (error -> String.t()) | (Changeset.t(), atom, error -> String.t())) ::
           %{atom => [term]}
