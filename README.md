@@ -79,6 +79,9 @@ Define field types with `:type`:
 - `{:array, inner_type}`, where `inner_type` can be any of the field types
 - See [Ecto.Schema](https://hexdocs.pm/ecto/Ecto.Schema.html#module-primitive-types) for the full list
 
+The default field type is `:string`. That means you don't have to define this field in the schema
+if the value will be a string.
+
 Define map fields with `:properties`.
 
 Define string validations:

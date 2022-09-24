@@ -11,7 +11,6 @@ defmodule Goal.MixProject do
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      name: "Goal",
       description: "A parameter validation library based on Ecto",
       source_ref: @version,
       source_url: @source_url,
