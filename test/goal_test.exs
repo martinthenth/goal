@@ -496,11 +496,7 @@ defmodule GoalTest do
 
     test "list" do
       data = %{
-        "list" => [
-          "one",
-          "two",
-          "three"
-        ]
+        "list" => ["one", "two", "three"]
       }
 
       schema = %{
@@ -512,11 +508,7 @@ defmodule GoalTest do
 
     test "invalid list" do
       data = %{
-        "list" => [
-          "one",
-          "two",
-          "three"
-        ]
+        "list" => ["one", "two", "three"]
       }
 
       schema = %{
@@ -766,7 +758,7 @@ defmodule GoalTest do
   end
 
   defp errors_on(changeset) do
-    Goal.Changeset.traverse_errors(changeset, fn {message, opts} ->
+    Goal.traverse_errors(changeset, fn {message, opts} ->
       Regex.replace(~r"%{(\w+)}", message, fn _map, key ->
         opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
       end)

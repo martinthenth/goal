@@ -176,11 +176,9 @@ defmodule Goal do
   defp validate_required_fields(%Changeset{} = changeset, schema) do
     required_fields =
       Enum.reduce(schema, [], fn {field, rules}, acc ->
-        if Keyword.get(rules, :required, false) do
-          [field | acc]
-        else
-          acc
-        end
+        if Keyword.get(rules, :required, false),
+          do: [field | acc],
+          else: acc
       end)
 
     validate_required(changeset, required_fields)
