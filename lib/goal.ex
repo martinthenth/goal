@@ -7,8 +7,12 @@ defmodule Goal do
 
   alias Ecto.Changeset
 
-  @doc """
-  Validates the parameters against the schema.
+  @type data :: map()
+  @type schema :: map()
+  @type error :: {String.t(), Keyword.t()}
+
+  @doc ~S"""
+  Validates parameters against a schema.
 
   ## Examples
 
@@ -16,16 +20,33 @@ defmodule Goal do
       {:ok, %{email: "jane@example.com"}}
 
       iex> validate_params(%{"email" => "invalid"}, %{email: [format: :email]})
-      {:error, %Ecto.Changeset{}}
+      {:error, %Ecto.Changeset{valid?: false, errors: [email: {"has invalid format", ...}]}}
 
   """
-  @spec validate_params(map, map) :: {:ok, map} | {:error, Changeset.t()}
+  @spec validate_params(data, schema) :: {:ok, map} | {:error, Changeset.t()}
   def validate_params(params, schema) do
     case build_changeset(params, schema) do
       %Changeset{valid?: true, changes: changes} -> {:ok, changes}
       %Changeset{valid?: false} = changeset -> {:error, changeset}
     end
   end
+
+  @doc ~S"""
+  Traverses changeset errors and applies the given function to error messages.
+
+  ## Examples
+
+      iex> traverse_errors(changeset, fn {msg, opts} ->
+      ...>   Regex.replace(~r"%{(\w+)}", msg, fn _, key ->
+      ...>     opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
+      ...>   end)
+      ...> end)
+      %{title: ["should be at least 3 characters"]}
+
+  """
+  @spec traverse_errors(Changeset.t(), (error -> binary) | (Changeset.t(), atom, error -> binary)) ::
+          %{atom => [term]}
+  defdelegate traverse_errors(changeset, msg_func), to: Goal.Changeset
 
   defp get_types(schema) do
     Enum.reduce(schema, %{}, fn {field, rules}, acc ->
