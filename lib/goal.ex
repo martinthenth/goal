@@ -37,7 +37,7 @@ defmodule Goal do
   - `:date`
   - `:time`
   - `:map`
-  - `:list`
+  - `{:array, inner_type}`, where `inner_type` can be any of the field types
   - See [Ecto.Schema](https://hexdocs.pm/ecto/Ecto.Schema.html#module-primitive-types) for the full list
 
   Define map fields with `:properties`.
@@ -57,12 +57,18 @@ defmodule Goal do
   - `:is`, integer value
   - `:min`, minimum integer value
   - `:max`, maximum integer value
-  - `:less_than`, integer value
-  - `:greater_than`, integer value
-  - `:less_than_or_equal_to`, integer value
-  - `:greater_than_or_equal_to`, integer value
+  - `:greater_than`, minimum integer value
+  - `:less_than`, maximum integer value
+  - `:greater_than_or_equal_to`, minimum integer value
+  - `:less_than_or_equal_to`, maximum integer value
   - `:equal_to`, integer value
   - `:not_equal_to`, integer value
+
+  Define enum validations:
+
+  - `:excluded`, list of disallowed values
+  - `:included`, list of allowed values
+  - `:subset`, list of values
 
   ## Bring your own regex
 
@@ -104,7 +110,7 @@ defmodule Goal do
             map: [
               type: :map,
               properties: %{
-                list: [type: :list, inner_type: :integer]
+                list: [type: {:array, :integer}]
               }
             ]
           }
@@ -192,9 +198,6 @@ defmodule Goal do
             |> Enum.map(&String.to_atom/1)
 
           Map.put(acc, field, {:parameterized, Ecto.Enum, Ecto.Enum.init(values: values)})
-
-        :list ->
-          Map.put(acc, field, {:array, Keyword.get(rules, :inner_type, :string)})
 
         type ->
           Map.put(acc, field, type)

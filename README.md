@@ -76,7 +76,7 @@ Define field types with `:type`:
 - `:date`
 - `:time`
 - `:map`
-- `:list`
+- `{:array, inner_type}`, where `inner_type` can be any of the field types
 - See [Ecto.Schema](https://hexdocs.pm/ecto/Ecto.Schema.html#module-primitive-types) for the full list
 
 Define map fields with `:properties`.
@@ -96,10 +96,10 @@ Define integer validations:
 - `:is`, integer value
 - `:min`, minimum integer value
 - `:max`, maximum integer value
-- `:less_than`, integer value
-- `:greater_than`, integer value
-- `:less_than_or_equal_to`, integer value
-- `:greater_than_or_equal_to`, integer value
+- `:greater_than`, minimum integer value
+- `:less_than`, maximum integer value
+- `:greater_than_or_equal_to`, minimum integer value
+- `:less_than_or_equal_to`, maximum integer value
 - `:equal_to`, integer value
 - `:not_equal_to`, integer value
 
@@ -117,7 +117,7 @@ config :goal,
 
 ### Deeply nested maps
 
-Goal efficiently builds error changesets for nested maps. The only limitation on depth is your imagination (and computing resources). If the schema is becoming too verbose, you could consider splitting up the schema into reusable components.
+Goal efficiently builds error changesets for nested maps. There is no limitation on depth. If the schema is becoming too verbose, you could consider splitting up the schema into reusable components.
 
 ```elixir
 data = %{
@@ -140,7 +140,7 @@ schema = %{
           map: [
             type: :map,
             properties: %{
-              list: [type: :list, inner_type: :integer]
+              list: [type: {:array, :integer}]
             }
           ]
         }
@@ -165,24 +165,11 @@ def translate_errors(changeset) do
 end
 ```
 
-### Available validations
-
-Every validation that you have for database fields when using Ecto can be applied in validating parameters.
-
-- `required` fields
-- `string` length validations (`min`, `max`, `is`)
-- `string` format validations (`uuid`, `email`, `password`)
-- `integer` value validations (`less_than`, `greater_than`, etc.)
-- `list` validations
-- `map` validations
-- `nested map` validations
-- `enum` validations (`included`, `excluded`, `subset`)
-
 ## Roadmap
 
 - [x] Bring your own regex
 - [x] ExDoc documentation
-- [ ] Basic syntax optimizations
+- [x] Basic syntax optimizations
 - [ ] Macro for generating schemas using `optional` and `required` (like https://dry-rb.org/gems/dry-schema/1.10/)
 - [ ] Release v0.1.0 on Hex.pm
 - [ ] Convert incoming params from `camelCase` to `snake_case`
