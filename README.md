@@ -4,6 +4,8 @@ A library for parsing and validating parameters. It takes the `params` (e.g. fro
 
 Goal is different from other validation libraries because of its syntax, it being Ecto-based, and it validates data using pure functions instead of building embedded `Ecto.Schema` in the background.
 
+Goal allows you to configure your own regexes. This is helpful in case of backward compatibility, where Goal's defaults might not match your production system's regexes.
+
 ## Installation
 
 Add `goal` to the list of dependencies in `mix.exs`:
@@ -61,6 +63,45 @@ end
 ```
 
 ## Features
+
+### Defining validations
+
+Define field types with `:type`:
+
+- `:string`
+- `:integer`
+- `:boolean`
+- `:float`
+- `:decimal`
+- `:date`
+- `:time`
+- `:map`
+- `:list`
+- See [Ecto.Schema](https://hexdocs.pm/ecto/Ecto.Schema.html#module-primitive-types) for the full list
+
+Define map fields with `:properties`.
+
+Define string validations:
+
+- `:equals`, string value
+- `:is`, string length
+- `:min`, minimum string length
+- `:max`, maximum string length
+- `:trim`, boolean to remove leading and trailing spaces
+- `:squish`, boolean to trim and collapse spaces
+- `:format`, atom to define the regex (available are: `:uuid`, `:email`, `:password`, `:url`)
+
+Define integer validations:
+
+- `:is`, integer value
+- `:min`, minimum integer value
+- `:max`, maximum integer value
+- `:less_than`, integer value
+- `:greater_than`, integer value
+- `:less_than_or_equal_to`, integer value
+- `:greater_than_or_equal_to`, integer value
+- `:equal_to`, integer value
+- `:not_equal_to`, integer value
 
 ### Bring your own regex
 

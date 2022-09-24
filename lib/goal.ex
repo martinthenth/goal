@@ -25,9 +25,48 @@ defmodule Goal do
   end
   ```
 
+  ## Defining validations
+
+  Define field types with `:type`:
+
+  - `:string`
+  - `:integer`
+  - `:boolean`
+  - `:float`
+  - `:decimal`
+  - `:date`
+  - `:time`
+  - `:map`
+  - `:list`
+  - See [Ecto.Schema](https://hexdocs.pm/ecto/Ecto.Schema.html#module-primitive-types) for the full list
+
+  Define map fields with `:properties`.
+
+  Define string validations:
+
+  - `:equals`, string value
+  - `:is`, string length
+  - `:min`, minimum string length
+  - `:max`, maximum string length
+  - `:trim`, boolean to remove leading and trailing spaces
+  - `:squish`, boolean to trim and collapse spaces
+  - `:format`, atom to define the regex (available are: `:uuid`, `:email`, `:password`, `:url`)
+
+  Define integer validations:
+
+  - `:is`, integer value
+  - `:min`, minimum integer value
+  - `:max`, maximum integer value
+  - `:less_than`, integer value
+  - `:greater_than`, integer value
+  - `:less_than_or_equal_to`, integer value
+  - `:greater_than_or_equal_to`, integer value
+  - `:equal_to`, integer value
+  - `:not_equal_to`, integer value
+
   ## Bring your own regex
 
-  oal has sensible defaults for string format validation. If you'd like to use your own regex,
+  Goal has sensible defaults for string format validation. If you'd like to use your own regex,
   e.g. for validating email addresses or passwords, you can add your own regex in your
   application configuration.
 
