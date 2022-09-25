@@ -399,15 +399,15 @@ defmodule Goal do
               |> build_changeset(inner_schema)
               |> case do
                 %Changeset{valid?: true, changes: changes} ->
-                  {boolean, append_to_list(list, changes)}
+                  {boolean, [changes | list]}
 
                 %Changeset{valid?: false} = inner_changeset ->
-                  {false, append_to_list(list, inner_changeset)}
+                  {false, [inner_changeset | list]}
               end
             end)
 
           acc
-          |> put_in([Access.key(:changes), Access.key(field)], changesets)
+          |> put_in([Access.key(:changes), Access.key(field)], Enum.reverse(changesets))
           |> Map.put(:valid?, valid?)
         else
           acc
@@ -417,6 +417,4 @@ defmodule Goal do
         acc
     end)
   end
-
-  defp append_to_list(list, value), do: Enum.reverse([value | Enum.reverse(list)])
 end
