@@ -1,9 +1,9 @@
 defmodule Goal do
   @moduledoc ~S"""
-  Validate parameters using a rules schema.
+  Goal contains functions to validate parameters using a rules schema.
 
-  The parameters can be any map, and can be string-based or atom-based. Goal uses the validation
-  rules from in `Ecto.Changeset`, which means you can use any validation that is available for
+  The parameters can be any map, be it string-based or atom-based. Goal uses the validation
+  rules from `Ecto.Changeset`, which means you can use any validation that is available for
   database fields for validating parameters with Goal.
 
   A common use-case is parsing and validating parameters from Phoenix controllers:

@@ -62,6 +62,29 @@ defmodule MyApp.SomeController do
 end
 ```
 
+### Using the defschema Macro
+
+```elixir
+defmodule MyApp.SomeController do
+  import Goal
+  import Goal.Syntax
+
+  def create(conn, params) do
+    with {:ok, attrs} <- validate_params(params, schema()) do
+      ...
+    end
+  end
+
+  defp schema do
+    defschema do
+      required :uuid, :string, format: :uuid
+      required :name, :string, min: 3, max: 3
+      optional :age, :integer
+    end
+  end
+end
+```
+
 ## Features
 
 ### Defining validations
