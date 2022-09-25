@@ -1,10 +1,13 @@
 defmodule Goal do
   @moduledoc ~S"""
-  Goal contains functions to validate parameters using a rules schema.
+  Goal is a parameter validation library based on Ecto.
 
-  The parameters can be any map, be it string-based or atom-based. Goal uses the validation
-  rules from `Ecto.Changeset`, which means you can use any validation that is available for
-  database fields for validating parameters with Goal.
+  It takes the parameters, e.g. from a Phoenix controller, validates them against a schema,
+  and returns an atom-based map with the validated data. An `Ecto.Changeset` is returned if
+  any of the parameters is invalid.
+
+  Goal uses the validation rules from `Ecto.Changeset`, which means you can use any validation
+  that is available for database fields for validating parameters with Goal.
 
   A common use-case is parsing and validating parameters from Phoenix controllers:
 
@@ -20,6 +23,28 @@ defmodule Goal do
     def create(conn, params) do
       with {:ok, attrs} <- validate_params(params, @schema) do
         ...
+      end
+    end
+  end
+  ```
+
+  With the `defschema` macro:
+
+  ```elixir
+  defmodule MyApp.SomeController do
+    import Goal
+    import Goal.Syntax
+
+    def create(conn, params) do
+      with {:ok, attrs} <- validate_params(params, schema()) do
+        ...
+      end
+    end
+
+    def schema do
+      defschema do
+        required :id, format: :uuid
+        required :name, min: 3, max: 20
       end
     end
   end
@@ -76,7 +101,7 @@ defmodule Goal do
   ## Bring your own regex
 
   Goal has sensible defaults for string format validation. If you'd like to use your own regex,
-  e.g. for validating email addresses or passwords, you can add your own regex in your
+  e.g. for validating email addresses or passwords, you can configure your own regexes in your
   application configuration.
 
   ```elixir
@@ -93,10 +118,11 @@ defmodule Goal do
   schema is becoming too verbose, you could consider splitting up the schema into reusable components.
 
   ```elixir
-  data = %{
+  params = %{
     "nested_map" => %{
       "map" => %{
         "inner_map" => %{
+          "id" => 123,
           "list" => [1, 2, 3]
         }
       }
@@ -113,6 +139,7 @@ defmodule Goal do
             map: [
               type: :map,
               properties: %{
+                id: [type: :integer, required: true],
                 list: [type: {:array, :integer}]
               }
             ]
@@ -122,10 +149,34 @@ defmodule Goal do
     ]
   }
 
-  iex(1)> data = %{...}
-  iex(2)> schema = %{...}
-  iex(3)> Goal.validate_params(data, schema)
-  {:ok, %{nested_map: %{inner_map: %{map: %{list: [1, 2, 3]}}}}}
+  iex(3)> Goal.validate_params(params, schema)
+  {:ok, %{nested_map: %{inner_map: %{map: %{id: 123, list: [1, 2, 3]}}}}}
+  ```
+
+  ## Use defschema to reduce boilerplate
+
+  Goal provides a macro called `Goal.Syntax.defschema/1` to build validation schemas without all
+  the boilerplate code. The previous example of deeply nested maps can be rewritten as:
+
+  ```elixir
+  import Goal.Syntax
+
+  params = %{...}
+
+  schema =
+    defschema do
+      optional :nested_map, :map do
+        optional :inner_map, :map do
+          optional :map, :map do
+            required :id, :integer
+            optional :list, {:array, :integer}
+          end
+        end
+      end
+    end
+
+  iex(3)> Goal.validate_params(params, schema)
+  {:ok, %{nested_map: %{inner_map: %{map: %{id: 123, list: [1, 2, 3]}}}}}
   ```
 
   ## Human-readable error messages
@@ -150,7 +201,7 @@ defmodule Goal do
 
   alias Ecto.Changeset
 
-  @type data :: map()
+  @type params :: map()
   @type schema :: map()
   @type error :: {String.t(), Keyword.t()}
 
@@ -166,7 +217,7 @@ defmodule Goal do
       {:error, %Ecto.Changeset{valid?: false, errors: [email: {"has invalid format", ...}]}}
 
   """
-  @spec validate_params(data, schema) :: {:ok, map} | {:error, Changeset.t()}
+  @spec validate_params(params, schema) :: {:ok, map} | {:error, Changeset.t()}
   def validate_params(params, schema) do
     case build_changeset(params, schema) do
       %Changeset{valid?: true, changes: changes} -> {:ok, changes}

@@ -10,7 +10,7 @@ defmodule Goal.Syntax do
   """
 
   @doc """
-  Transforms the schema into a validation schema.
+  A macro for defining validation schemas.
 
   ```elixir
   import Goal.Syntax

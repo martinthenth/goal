@@ -3,6 +3,7 @@ defmodule Goal.MixProject do
 
   @version "0.1.0"
   @source_url "https://github.com/martinthenth/goal"
+  @changelog_url "https://github.com/martinthenth/goal/blob/main/CHANGELOG.md"
 
   def project do
     [
@@ -38,7 +39,7 @@ defmodule Goal.MixProject do
     [
       maintainers: ["Martin Nijboer"],
       licenses: ["MIT"],
-      links: %{"GitHub" => @source_url}
+      links: %{"GitHub" => @source_url, "Changelog" => @changelog_url}
     ]
   end
 
