@@ -1,6 +1,6 @@
 # Goal ⚽
 
-A library for parsing and validating parameters. It takes the `params` (e.g. from an Phoenix controller action), validates them, and returns an atom-based map or an error changeset. It's based on [Ecto](https://github.com/elixir-ecto/ecto), so every validation that you have for database fields can be applied in validating parameters.
+A library for parsing and validating parameters. It takes the `params` (e.g. from an Phoenix controller action), validates them against a schema, and returns an atom-based map or an error changeset. It's based on [Ecto](https://github.com/elixir-ecto/ecto), so every validation that you have for database fields can be applied in validating parameters.
 
 Goal is different from other validation libraries because of its syntax, it being Ecto-based, and it validates data using pure functions instead of building embedded `Ecto.Schema` in the background.
 
@@ -58,6 +58,29 @@ defmodule MyApp.SomeController do
       id: [format: :uuid, required: true],
       name: [min: 3, max: 20, required: true]
     }
+  end
+end
+```
+
+### Using the defschema Macro
+
+```elixir
+defmodule MyApp.SomeController do
+  import Goal
+  import Goal.Syntax
+
+  def create(conn, params) do
+    with {:ok, attrs} <- validate_params(params, schema()) do
+      ...
+    end
+  end
+
+  defp schema do
+    defschema do
+      required :uuid, :string, format: :uuid
+      required :name, :string, min: 3, max: 3
+      optional :age, :integer
+    end
   end
 end
 ```
@@ -123,10 +146,11 @@ config :goal,
 Goal efficiently builds error changesets for nested maps. There is no limitation on depth. If the schema is becoming too verbose, you could consider splitting up the schema into reusable components.
 
 ```elixir
-data = %{
+params = %{
   "nested_map" => %{
     "map" => %{
       "inner_map" => %{
+        "id" => 123,
         "list" => [1, 2, 3]
       }
     }
@@ -143,6 +167,7 @@ schema = %{
           map: [
             type: :map,
             properties: %{
+              id: [type: :integer, required: true],
               list: [type: {:array, :integer}]
             }
           ]
@@ -152,10 +177,34 @@ schema = %{
   ]
 }
 
-iex(1)> data = %{...}
-iex(2)> schema = %{...}
-iex(3)> Goal.validate_params(data, schema)
-{:ok, %{nested_map: %{inner_map: %{map: %{list: [1, 2, 3]}}}}}
+iex(3)> Goal.validate_params(params, schema)
+{:ok, %{nested_map: %{inner_map: %{map: %{id: 123, list: [1, 2, 3]}}}}}
+```
+
+### Using defschema to reduce boilerplate
+
+Goal provides a macro called `Goal.Syntax.defschema/1` to build validation schemas without all
+the boilerplate code. The previous example of deeply nested maps can be rewritten as:
+
+```elixir
+import Goal.Syntax
+
+params = %{...}
+
+schema =
+  defschema do
+    optional :nested_map, :map do
+      optional :inner_map, :map do
+        optional :map, :map do
+          required :id, :integer
+          optional :list, {:array, :integer}
+        end
+      end
+    end
+  end
+
+iex(3)> Goal.validate_params(params, schema)
+{:ok, %{nested_map: %{inner_map: %{map: %{id: 123, list: [1, 2, 3]}}}}}
 ```
 
 ### Human-readable error messages
@@ -173,8 +222,8 @@ end
 - [x] Bring your own regex
 - [x] ExDoc documentation
 - [x] Basic syntax optimizations
-- [ ] Macro for generating schemas using `optional` and `required` (like https://dry-rb.org/gems/dry-schema/1.10/)
-- [ ] Release v0.1.0 on Hex.pm
+- [x] Macro for generating schemas without boilerplate
+- [x] Release v0.1.0 on Hex.pm
 - [ ] Convert incoming params from `camelCase` to `snake_case`
 
 ## Credits
