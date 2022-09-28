@@ -242,6 +242,16 @@ defmodule Goal do
           %{atom => [term]}
   defdelegate traverse_errors(changeset, msg_func), to: Goal.Changeset
 
+  defp build_changeset(params, schema) do
+    types = get_types(schema)
+
+    {%{}, types}
+    |> Changeset.cast(params, Map.keys(types))
+    |> validate_required_fields(schema)
+    |> validate_basic_fields(schema)
+    |> validate_nested_fields(types, schema)
+  end
+
   defp get_types(schema) do
     Enum.reduce(schema, %{}, fn {field, rules}, acc ->
       case Keyword.get(rules, :type, :string) do
@@ -257,16 +267,6 @@ defmodule Goal do
           Map.put(acc, field, type)
       end
     end)
-  end
-
-  defp build_changeset(params, schema) do
-    types = get_types(schema)
-
-    {%{}, types}
-    |> Changeset.cast(params, Map.keys(types))
-    |> validate_required_fields(schema)
-    |> validate_basic_fields(schema)
-    |> validate_nested_fields(types, schema)
   end
 
   defp validate_required_fields(%Changeset{} = changeset, schema) do
@@ -288,133 +288,138 @@ defmodule Goal do
     end)
   end
 
+  defp validate_fields([], _field, changeset), do: changeset
+
   defp validate_fields(rules, field, changeset) do
     Enum.reduce(rules, changeset, fn
-      {:equals, value}, inner_acc ->
-        validate_inclusion(inner_acc, field, [value])
+      {:equals, value}, acc ->
+        validate_inclusion(acc, field, [value])
 
-      {:excluded, values}, inner_acc ->
-        validate_exclusion(inner_acc, field, values)
+      {:excluded, values}, acc ->
+        validate_exclusion(acc, field, values)
 
-      {:included, values}, inner_acc ->
-        validate_inclusion(inner_acc, field, values)
+      {:included, values}, acc ->
+        validate_inclusion(acc, field, values)
 
-      {:subset, values}, inner_acc ->
-        validate_subset(inner_acc, field, values)
+      {:subset, values}, acc ->
+        validate_subset(acc, field, values)
 
-      {:is, integer}, inner_acc ->
-        change = get_in(inner_acc, [Access.key(:changes), Access.key(field)])
-
-        if is_integer(change),
-          do: validate_number(inner_acc, field, equal_to: integer),
-          else: validate_length(inner_acc, field, is: integer)
-
-      {:min, integer}, inner_acc ->
-        change = get_in(inner_acc, [Access.key(:changes), Access.key(field)])
+      {:is, integer}, acc ->
+        change = get_in(acc, [Access.key(:changes), Access.key(field)])
 
         if is_integer(change),
-          do: validate_number(inner_acc, field, greater_than_or_equal_to: integer),
-          else: validate_length(inner_acc, field, min: integer)
+          do: validate_number(acc, field, equal_to: integer),
+          else: validate_length(acc, field, is: integer)
 
-      {:max, integer}, inner_acc ->
-        change = get_in(inner_acc, [Access.key(:changes), Access.key(field)])
+      {:min, integer}, acc ->
+        change = get_in(acc, [Access.key(:changes), Access.key(field)])
 
         if is_integer(change),
-          do: validate_number(inner_acc, field, less_than_or_equal_to: integer),
-          else: validate_length(inner_acc, field, max: integer)
+          do: validate_number(acc, field, greater_than_or_equal_to: integer),
+          else: validate_length(acc, field, min: integer)
 
-      {:trim, true}, inner_acc ->
-        update_change(inner_acc, field, &String.trim/1)
+      {:max, integer}, acc ->
+        change = get_in(acc, [Access.key(:changes), Access.key(field)])
 
-      {:squish, true}, inner_acc ->
-        update_change(inner_acc, field, &Goal.String.squish/1)
+        if is_integer(change),
+          do: validate_number(acc, field, less_than_or_equal_to: integer),
+          else: validate_length(acc, field, max: integer)
 
-      {:format, :uuid}, inner_acc ->
-        validate_format(inner_acc, field, Goal.Regex.uuid())
+      {:trim, true}, acc ->
+        update_change(acc, field, &String.trim/1)
 
-      {:format, :email}, inner_acc ->
-        validate_format(inner_acc, field, Goal.Regex.email())
+      {:squish, true}, acc ->
+        update_change(acc, field, &Goal.String.squish/1)
 
-      {:format, :password}, inner_acc ->
-        validate_format(inner_acc, field, Goal.Regex.password())
+      {:format, :uuid}, acc ->
+        validate_format(acc, field, Goal.Regex.uuid())
 
-      {:format, :url}, inner_acc ->
-        validate_format(inner_acc, field, Goal.Regex.url())
+      {:format, :email}, acc ->
+        validate_format(acc, field, Goal.Regex.email())
 
-      {:less_than, integer}, inner_acc ->
-        validate_number(inner_acc, field, less_than: integer)
+      {:format, :password}, acc ->
+        validate_format(acc, field, Goal.Regex.password())
 
-      {:greater_than, integer}, inner_acc ->
-        validate_number(inner_acc, field, greater_than: integer)
+      {:format, :url}, acc ->
+        validate_format(acc, field, Goal.Regex.url())
 
-      {:less_than_or_equal_to, integer}, inner_acc ->
-        validate_number(inner_acc, field, less_than_or_equal_to: integer)
+      {:less_than, integer}, acc ->
+        validate_number(acc, field, less_than: integer)
 
-      {:greater_than_or_equal_to, integer}, inner_acc ->
-        validate_number(inner_acc, field, greater_than_or_equal_to: integer)
+      {:greater_than, integer}, acc ->
+        validate_number(acc, field, greater_than: integer)
 
-      {:equal_to, integer}, inner_acc ->
-        validate_number(inner_acc, field, equal_to: integer)
+      {:less_than_or_equal_to, integer}, acc ->
+        validate_number(acc, field, less_than_or_equal_to: integer)
 
-      {:not_equal_to, integer}, inner_acc ->
-        validate_number(inner_acc, field, not_equal_to: integer)
+      {:greater_than_or_equal_to, integer}, acc ->
+        validate_number(acc, field, greater_than_or_equal_to: integer)
 
-      {_name, _setting}, inner_acc ->
-        inner_acc
+      {:equal_to, integer}, acc ->
+        validate_number(acc, field, equal_to: integer)
+
+      {:not_equal_to, integer}, acc ->
+        validate_number(acc, field, not_equal_to: integer)
+
+      {_name, _setting}, acc ->
+        acc
     end)
   end
 
   defp validate_nested_fields(%Changeset{changes: changes} = changeset, types, schema) do
     Enum.reduce(types, changeset, fn
-      {field, :map}, acc ->
-        inner_params = Map.get(changes, field)
-        inner_rules = Map.get(schema, field)
-        inner_schema = Keyword.get(inner_rules, :properties)
+      {field, :map}, acc -> validate_map_field(changes, field, schema, acc)
+      {field, {:array, :map}}, acc -> validate_array_field(changes, field, schema, acc)
+      {_field, _type}, acc -> acc
+    end)
+  end
 
-        if inner_schema && inner_params do
-          inner_params
-          |> build_changeset(inner_schema)
+  defp validate_map_field(changes, field, schema, changeset) do
+    params = Map.get(changes, field)
+    rules = Map.get(schema, field)
+    schema = Keyword.get(rules, :properties)
+
+    if schema && params do
+      params
+      |> build_changeset(schema)
+      |> case do
+        %Changeset{valid?: true, changes: inner_changes} ->
+          put_in(changeset, [Access.key(:changes), Access.key(field)], inner_changes)
+
+        %Changeset{valid?: false} = inner_changeset ->
+          changeset
+          |> put_in([Access.key(:changes), Access.key(field)], inner_changeset)
+          |> Map.put(:valid?, false)
+      end
+    else
+      changeset
+    end
+  end
+
+  defp validate_array_field(changes, field, schema, changeset) do
+    params = Map.get(changes, field)
+    rules = Map.get(schema, field)
+    schema = Keyword.get(rules, :properties)
+
+    if schema do
+      {valid?, changesets} =
+        Enum.reduce(params, {true, []}, fn params, {boolean, list} ->
+          params
+          |> build_changeset(schema)
           |> case do
-            %Changeset{valid?: true, changes: changes} ->
-              put_in(acc, [Access.key(:changes), Access.key(field)], changes)
+            %Changeset{valid?: true, changes: inner_changes} ->
+              {boolean, [inner_changes | list]}
 
             %Changeset{valid?: false} = inner_changeset ->
-              acc
-              |> put_in([Access.key(:changes), Access.key(field)], inner_changeset)
-              |> Map.put(:valid?, false)
+              {false, [inner_changeset | list]}
           end
-        else
-          acc
-        end
+        end)
 
-      {field, {:array, :map}}, acc ->
-        inner_params = Map.get(changes, field)
-        inner_rules = Map.get(schema, field)
-        inner_schema = Keyword.get(inner_rules, :properties)
-
-        if inner_schema do
-          {valid?, changesets} =
-            Enum.reduce(inner_params, {true, []}, fn params, {boolean, list} ->
-              params
-              |> build_changeset(inner_schema)
-              |> case do
-                %Changeset{valid?: true, changes: changes} ->
-                  {boolean, [changes | list]}
-
-                %Changeset{valid?: false} = inner_changeset ->
-                  {false, [inner_changeset | list]}
-              end
-            end)
-
-          acc
-          |> put_in([Access.key(:changes), Access.key(field)], Enum.reverse(changesets))
-          |> Map.put(:valid?, valid?)
-        else
-          acc
-        end
-
-      {_field, _type}, acc ->
-        acc
-    end)
+      changeset
+      |> put_in([Access.key(:changes), Access.key(field)], Enum.reverse(changesets))
+      |> Map.put(:valid?, valid?)
+    else
+      changeset
+    end
   end
 end
