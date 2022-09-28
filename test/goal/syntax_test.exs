@@ -3,7 +3,7 @@ defmodule Goal.SyntaxTest do
 
   import Goal.Syntax
 
-  describe "define schema" do
+  describe "defschema/1" do
     test "valid example" do
       schema =
         defschema do
