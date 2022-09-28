@@ -237,7 +237,7 @@ defmodule Goal do
   @type error :: {String.t(), Keyword.t()}
 
   @doc ~S"""
-  Validates the parameters against a schema.
+  Validates parameters against a schema.
 
   ## Examples
 
@@ -338,23 +338,23 @@ defmodule Goal do
       {:is, integer}, acc ->
         change = get_in(acc, [Access.key(:changes), Access.key(field)])
 
-        if is_integer(change),
-          do: validate_number(acc, field, equal_to: integer),
-          else: validate_length(acc, field, is: integer)
+        if is_binary(change),
+          do: validate_length(acc, field, is: integer),
+          else: validate_number(acc, field, equal_to: integer)
 
       {:min, integer}, acc ->
         change = get_in(acc, [Access.key(:changes), Access.key(field)])
 
-        if is_integer(change),
-          do: validate_number(acc, field, greater_than_or_equal_to: integer),
-          else: validate_length(acc, field, min: integer)
+        if is_binary(change),
+          do: validate_length(acc, field, min: integer),
+          else: validate_number(acc, field, greater_than_or_equal_to: integer)
 
       {:max, integer}, acc ->
         change = get_in(acc, [Access.key(:changes), Access.key(field)])
 
-        if is_integer(change),
-          do: validate_number(acc, field, less_than_or_equal_to: integer),
-          else: validate_length(acc, field, max: integer)
+        if is_binary(change),
+          do: validate_length(acc, field, max: integer),
+          else: validate_number(acc, field, less_than_or_equal_to: integer)
 
       {:trim, true}, acc ->
         update_change(acc, field, &String.trim/1)
