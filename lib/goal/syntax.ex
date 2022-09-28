@@ -1,6 +1,6 @@
 defmodule Goal.Syntax do
   @moduledoc """
-  Goal.Syntax provides the `defschema` macro to define schemas.
+  Goal.Syntax provides the `defschema` macro for defining validation schemas.
 
   ## Usage
 
@@ -10,7 +10,7 @@ defmodule Goal.Syntax do
   """
 
   @doc """
-  A macro for defining validation schemas.
+  A macro for defining validation schemas that are generated at compile-time.
 
   ```elixir
   import Goal.Syntax
@@ -21,6 +21,11 @@ defmodule Goal.Syntax do
       required :name, :string
       optional :age, :integer, min: 0, max: 120
       optional :gender, :enum, values: ["female", "male", "non-binary"]
+
+      required :data, :map do
+        required :city, :string
+        optional :birthday, :date
+      end
     end
   end
   ```
