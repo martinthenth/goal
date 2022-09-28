@@ -1,6 +1,8 @@
 defmodule GoalTest do
   use ExUnit.Case
 
+  import Goal.Helpers
+
   describe "validate_params/2" do
     test "valid example" do
       data = %{
@@ -752,13 +754,33 @@ defmodule GoalTest do
                map_1: ["can't be blank"]
              }
     end
-  end
 
-  defp errors_on(changeset) do
-    Goal.traverse_errors(changeset, fn {message, opts} ->
-      Regex.replace(~r"%{(\w+)}", message, fn _map, key ->
-        opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
-      end)
-    end)
+    test "works with atom-based maps" do
+      data = %{
+        map: %{
+          string: "hello",
+          integer: 5
+        }
+      }
+
+      schema = %{
+        map: [
+          type: :map,
+          properties: %{
+            string: [type: :string],
+            integer: [type: :integer]
+          }
+        ]
+      }
+
+      assert Goal.validate_params(data, schema) ==
+               {:ok,
+                %{
+                  map: %{
+                    string: "hello",
+                    integer: 5
+                  }
+                }}
+    end
   end
 end
