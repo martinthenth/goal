@@ -2,6 +2,7 @@
 
 No breaking changes.
 
+- Allow number validations for all number fields (incl. `:decimal`, `:float`, etc.)
 - Adds performance optimizations to the validation logic
 - Adds tests to confirm `traverse_errors/2` doesn't break embedded Ecto schemas
 - Refactors the validation logic

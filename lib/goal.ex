@@ -2,33 +2,24 @@ defmodule Goal do
   @moduledoc ~S"""
   Goal is a parameter validation library based on Ecto.
 
-  It takes the parameters, e.g. from a Phoenix controller, validates them against a schema,
-  and returns an atom-based map with the validated data. An `Ecto.Changeset` is returned if
-  any of the parameters is invalid.
+  Goal takes the `params` (e.g. from an Phoenix controller), validates them against a schema,
+  and returns an atom-based map or an error changeset. It's based on
+  [Ecto](https://github.com/elixir-ecto/ecto), so every validation that you have for database
+  fields can be applied in validating parameters.
 
-  Goal uses the validation rules from `Ecto.Changeset`, which means you can use any validation
-  that is available for database fields for validating parameters with Goal.
+  Goal is different from other validation libraries because of its syntax, being Ecto-based,
+  and validating data using functions from `Ecto.Changeset` instead of building embedded
+  `Ecto.Schema`s in the background.
 
-  A common use-case is parsing and validating parameters from Phoenix controllers:
+  Additionally, Goal allows you to configure your own regexes. This is helpful in case of backward
+  compatibility, where Goal's defaults might not match your production system's behavior.
 
-  ```elixir
-  defmodule MyApp.SomeController do
-    import Goal
+  ## Usage
 
-    @schema %{
-      id: [format: :uuid, required: true],
-      name: [min: 3, max: 20, required: true]
-    }
-
-    def create(conn, params) do
-      with {:ok, attrs} <- validate_params(params, @schema) do
-        ...
-      end
-    end
-  end
-  ```
-
-  With the `defschema` macro:
+  Goal's entry point is `Goal.validate_params/2`, which receives the parameters and a validation
+  schema. The parameters must be a map, and can be string-based or atom-based. Goal needs a
+  validation schema (also a map) to parse and validate the parameters. You can build one with
+  the `defschema` macro:
 
   ```elixir
   defmodule MyApp.SomeController do
@@ -41,68 +32,61 @@ defmodule Goal do
       end
     end
 
-    def schema do
+    defp schema do
       defschema do
-        required :id, format: :uuid
-        required :name, min: 3, max: 20
+        required :uuid, :string, format: :uuid
+        required :name, :string, min: 3, max: 3
+        optional :age, :integer, min: 0, max: 120
+        optional :gender, :enum, values: ["female", "male", "non-binary"]
+
+        optional :data, :map do
+          required :color, :string
+          optional :money, :decimal
+          optional :height, :float
+        end
       end
     end
   end
   ```
 
-  ## Defining validations
+  The `defschema` macro converts the given structure into a validation schema at compile-time.
+  You can also use the basic syntax like in the example below. The basic syntax is what
+  `defschema` compiles to.
 
-  Define field types with `:type`:
+  ```elixir
+  defmodule MyApp.SomeController do
+    import Goal
 
-  - `:string`
-  - `:integer`
-  - `:boolean`
-  - `:float`
-  - `:decimal`
-  - `:date`
-  - `:time`
-  - `:map`
-  - `{:array, inner_type}`, where `inner_type` can be any of the field types
-  - See [Ecto.Schema](https://hexdocs.pm/ecto/Ecto.Schema.html#module-primitive-types) for the full list
+    @schema %{
+      id: [format: :uuid, required: true],
+      name: [min: 3, max: 20, required: true],
+      age: [type: :integer, min: 0, max: 120],
+      gender: [type: :enum, values: ["female", "male", "non-binary"]],
+      data: [
+        type: :map,
+        properties: %{
+          color: [required: true],
+          money: [type: :decimal],
+          height: [type: :float]
+        }
+      ]
+    }
 
-  The default field type is `:string`. That means you don't have to define this field in the schema
-  if the value will be a string.
+    def create(conn, params) do
+      with {:ok, attrs} <- validate_params(params, @schema) do
+        ...
+      end
+    end
+  end
+  ```
 
-  Define map fields with `:properties`.
+  ## Features
 
-  Define string validations:
-
-  - `:equals`, string value
-  - `:is`, string length
-  - `:min`, minimum string length
-  - `:max`, maximum string length
-  - `:trim`, boolean to remove leading and trailing spaces
-  - `:squish`, boolean to trim and collapse spaces
-  - `:format`, atom to define the regex (available are: `:uuid`, `:email`, `:password`, `:url`)
-
-  Define integer validations:
-
-  - `:is`, integer value
-  - `:min`, minimum integer value
-  - `:max`, maximum integer value
-  - `:greater_than`, minimum integer value
-  - `:less_than`, maximum integer value
-  - `:greater_than_or_equal_to`, minimum integer value
-  - `:less_than_or_equal_to`, maximum integer value
-  - `:equal_to`, integer value
-  - `:not_equal_to`, integer value
-
-  Define enum validations:
-
-  - `:excluded`, list of disallowed values
-  - `:included`, list of allowed values
-  - `:subset`, list of values
-
-  ## Bring your own regex
+  ### Bring your own regex
 
   Goal has sensible defaults for string format validation. If you'd like to use your own regex,
-  e.g. for validating email addresses or passwords, you can configure your own regexes in your
-  application configuration.
+  e.g. for validating email addresses or passwords, then you can add your own regex in the
+  configuration:
 
   ```elixir
   config :goal,
@@ -112,10 +96,10 @@ defmodule Goal do
     url_regex: ~r/^[[:alpha:]]+$/
   ```
 
-  ## Deeply nested maps
+  ### Deeply nested maps
 
-  Goal efficiently builds error changesets for nested maps. There is no limitation on depth. If the
-  schema is becoming too verbose, you could consider splitting up the schema into reusable components.
+  Goal efficiently builds error changesets for nested maps, and has support for lists of nested
+  maps. There is no limitation on depth.
 
   ```elixir
   params = %{
@@ -153,10 +137,10 @@ defmodule Goal do
   {:ok, %{nested_map: %{inner_map: %{map: %{id: 123, list: [1, 2, 3]}}}}}
   ```
 
-  ## Use defschema to reduce boilerplate
+  ### Use defschema to reduce boilerplate
 
   Goal provides a macro called `Goal.Syntax.defschema/1` to build validation schemas without all
-  the boilerplate code. The previous example of deeply nested maps can be rewritten as:
+  the boilerplate code. The previous example of deeply nested maps can be rewritten to:
 
   ```elixir
   import Goal.Syntax
@@ -179,17 +163,64 @@ defmodule Goal do
   {:ok, %{nested_map: %{inner_map: %{map: %{id: 123, list: [1, 2, 3]}}}}}
   ```
 
-  ## Human-readable error messages
+  ### Readable error messages
 
-  Use `Goal.traverse_errors/2` to build readable errors. Ecto and Phoenix by default
-  use `Ecto.Changeset.traverse_errors/2`, which works for embedded Ecto schemas but not for the
-  plain nested maps used by Goal.
+  Use `Goal.traverse_errors/2` to build readable errors. Phoenix by default uses
+  `Ecto.Changeset.traverse_errors/2`, which works for embedded Ecto schemas but not for the plain
+  nested maps used by Goal. Goal's `traverse_errors/2` is compatible with (embedded)
+  `Ecto.Schema`s, so you don't have to make any changes to your existing logic.
 
   ```elixir
   def translate_errors(changeset) do
     Goal.traverse_errors(changeset, &translate_error/1)
   end
   ```
+
+  ### Available validations
+
+  The field types and available validations are:
+
+  | Field type             | Validations                 | Description                                                                                          |
+  | ---------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------- |
+  | `:string`              | `:equals`                   | string value                                                                                         |
+  |                        | `:is`                       | string length                                                                                        |
+  |                        | `:min`                      | minimum string length                                                                                |
+  |                        | `:max`                      | maximum string length                                                                                |
+  |                        | `:trim`                     | oolean to remove leading and trailing spaces                                                         |
+  |                        | `:squish`                   | boolean to trim and collapse spaces                                                                  |
+  |                        | `:format`                   | `:uuid`, `:email`, `:password`, `:url`                                                               |
+  |                        | `:subset`                   | list of required strings                                                                             |
+  |                        | `:included`                 | list of allowed strings                                                                              |
+  |                        | `:excluded`                 | list of disallowed strings                                                                           |
+  | `:integer`             | `:equals`                   | integer value                                                                                        |
+  |                        | `:is`                       | integer value                                                                                        |
+  |                        | `:min`                      | minimum integer value                                                                                |
+  |                        | `:max`                      | maximum integer value                                                                                |
+  |                        | `:greater_than`             | minimum integer value                                                                                |
+  |                        | `:less_than`                | maximum integer value                                                                                |
+  |                        | `:greater_than_or_equal_to` | minimum integer value                                                                                |
+  |                        | `:less_than_or_equal_to`    | maximum integer value                                                                                |
+  |                        | `:equal_to`                 | integer value                                                                                        |
+  |                        | `:not_equal_to`             | integer value                                                                                        |
+  |                        | `:subset`                   | list of required integers                                                                            |
+  |                        | `:included`                 | list of allowed integers                                                                             |
+  |                        | `:excluded`                 | list of disallowed integers                                                                          |
+  | `:float`               |                             | all of the integer validations                                                                       |
+  | `:decimal`             |                             | all of the integer validations                                                                       |
+  | `:boolean`             | `:equals`                   | boolean value                                                                                        |
+  | `:date`                | `:equals`                   | date value                                                                                           |
+  | `:time`                | `:equals`                   | time value                                                                                           |
+  | `:enum`                | `:values`                   | list of allowed values                                                                               |
+  | `:map`                 | `:properties`               | use `:properties` to define the fields                                                               |
+  | `{:array, :map}`       | `:properties`               | use `:properties` to define the fields                                                               |
+  | `{:array, inner_type}` |                             | `inner_type` can be any of the basic types                                                           |
+  | More basic types       |                             | See [Ecto.Schema](https://hexdocs.pm/ecto/Ecto.Schema.html#module-primitive-types) for the full list |
+
+  The default basic type is `:string`. You don't have to define this field if you are using the
+  basic syntax.
+
+  All field types, exluding `:map` and `{:array, :map}`, can use `:equals`, `:subset`,
+  `:included`, `:excluded` validations.
 
   ## Credits
 
