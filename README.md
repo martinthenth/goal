@@ -175,6 +175,7 @@ The field types and available validations are:
 
 | Field type             | Validations                 | Description                                                                                          |
 | ---------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `:uuid`                | `:equals`                   | string value                                                                                         |
 | `:string`              | `:equals`                   | string value                                                                                         |
 |                        | `:is`                       | string length                                                                                        |
 |                        | `:min`                      | minimum string length                                                                                |
