@@ -27,6 +27,8 @@ defmodule Goal.RegexTest do
   describe "password/0" do
     test "with valid string, passes validation" do
       assert String.match?("password123", Regex.password()) == true
+      assert String.match?("password123!", Regex.password()) == true
+      assert String.match?("Password123!", Regex.password()) == true
     end
 
     test "with invalid string, fails validation" do
