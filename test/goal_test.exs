@@ -9,6 +9,7 @@ defmodule GoalTest do
         "required" => "required",
         "id" => "1",
         "uuid" => "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
+        "format_uuid" => "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
         "string" => "Jane",
         "is_string" => "Joly",
         "min_string" => "John",
@@ -43,7 +44,8 @@ defmodule GoalTest do
       schema = %{
         required: [required: true],
         id: [type: :integer],
-        uuid: [type: :string, format: :uuid],
+        uuid: [type: :uuid],
+        format_uuid: [type: :string, format: :uuid],
         string: [type: :string],
         is_string: [type: :string, is: 4],
         min_string: [type: :string, min: 2],
@@ -79,6 +81,7 @@ defmodule GoalTest do
                   required: "required",
                   id: 1,
                   uuid: "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
+                  format_uuid: "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
                   string: "Jane",
                   is_string: "Joly",
                   min_string: "John",
@@ -163,6 +166,32 @@ defmodule GoalTest do
       assert Goal.validate_params(data_1, schema) == {:ok, %{integers: [1, 2, 3]}}
       assert {:error, changeset} = Goal.validate_params(data_2, schema)
       assert errors_on(changeset) == %{integers: ["has an invalid entry"]}
+    end
+
+    test "uuid" do
+      schema = %{uuid: [type: :uuid]}
+
+      data_1 = %{"uuid" => "9d98baf6-3cd0-4431-ae24-629689b535d4"}
+      data_2 = %{"uuid" => "hello-world"}
+
+      assert Goal.validate_params(data_1, schema) ==
+               {:ok, %{uuid: "9d98baf6-3cd0-4431-ae24-629689b535d4"}}
+
+      assert {:error, changeset} = Goal.validate_params(data_2, schema)
+      assert errors_on(changeset) == %{uuid: ["is invalid"]}
+    end
+
+    test "uuid, equals: 9d98baf6-3cd0-4431-ae24-629689b535d4" do
+      schema = %{uuid: [type: :uuid, equals: "9d98baf6-3cd0-4431-ae24-629689b535d4"]}
+
+      data_1 = %{"uuid" => "9d98baf6-3cd0-4431-ae24-629689b535d4"}
+      data_2 = %{"uuid" => "16acef25-3981-4cbd-ab99-26f8691c5bec"}
+
+      assert Goal.validate_params(data_1, schema) ==
+               {:ok, %{uuid: "9d98baf6-3cd0-4431-ae24-629689b535d4"}}
+
+      assert {:error, changeset} = Goal.validate_params(data_2, schema)
+      assert errors_on(changeset) == %{uuid: ["is invalid"]}
     end
 
     test "string, min: 4" do

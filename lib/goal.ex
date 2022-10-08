@@ -182,6 +182,7 @@ defmodule Goal do
 
   | Field type             | Validations                 | Description                                                                                          |
   | ---------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------- |
+  | `:uuid`                | `:equals`                   | string value                                                                                         |
   | `:string`              | `:equals`                   | string value                                                                                         |
   |                        | `:is`                       | string length                                                                                        |
   |                        | `:min`                      | minimum string length                                                                                |
@@ -293,6 +294,9 @@ defmodule Goal do
             |> Enum.map(&String.to_atom/1)
 
           Map.put(acc, field, {:parameterized, Ecto.Enum, Ecto.Enum.init(values: values)})
+
+        :uuid ->
+          Map.put(acc, field, Ecto.UUID)
 
         type ->
           Map.put(acc, field, type)
