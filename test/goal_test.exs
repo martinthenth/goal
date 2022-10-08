@@ -384,6 +384,72 @@ defmodule GoalTest do
       assert errors_on(changeset) == %{age: ["must be not equal to 11"]}
     end
 
+    test "float, is: 5.01" do
+      schema = %{height: [type: :float, is: 5.01]}
+
+      data_1 = %{"height" => 5.01}
+      data_2 = %{"height" => 4.01}
+
+      assert Goal.validate_params(data_1, schema) == {:ok, %{height: 5.01}}
+      assert {:error, changeset} = Goal.validate_params(data_2, schema)
+      assert errors_on(changeset) == %{height: ["must be equal to 5.01"]}
+    end
+
+    test "float, min: 5.01" do
+      schema = %{height: [type: :float, min: 5.01]}
+
+      data_1 = %{"height" => 5.02}
+      data_2 = %{"height" => 5.00}
+
+      assert Goal.validate_params(data_1, schema) == {:ok, %{height: 5.02}}
+      assert {:error, changeset} = Goal.validate_params(data_2, schema)
+      assert errors_on(changeset) == %{height: ["must be greater than or equal to 5.01"]}
+    end
+
+    test "float, max: 5.01" do
+      schema = %{height: [type: :float, max: 5.01]}
+
+      data_1 = %{"height" => 4.99}
+      data_2 = %{"height" => 5.02}
+
+      assert Goal.validate_params(data_1, schema) == {:ok, %{height: 4.99}}
+      assert {:error, changeset} = Goal.validate_params(data_2, schema)
+      assert errors_on(changeset) == %{height: ["must be less than or equal to 5.01"]}
+    end
+
+    test "decimal, is: 5.01" do
+      schema = %{money: [type: :decimal, is: 5.01]}
+
+      data_1 = %{"money" => 5.01}
+      data_2 = %{"money" => 4.01}
+
+      assert Goal.validate_params(data_1, schema) == {:ok, %{money: Decimal.from_float(5.01)}}
+      assert {:error, changeset} = Goal.validate_params(data_2, schema)
+      assert errors_on(changeset) == %{money: ["must be equal to 5.01"]}
+    end
+
+    test "decimal, min: 5.01" do
+      schema = %{money: [type: :decimal, min: 5.01]}
+
+      data_1 = %{"money" => 5.02}
+      data_2 = %{"money" => 5.00}
+
+      assert Goal.validate_params(data_1, schema) == {:ok, %{money: Decimal.from_float(5.02)}}
+      assert {:error, changeset} = Goal.validate_params(data_2, schema)
+      assert errors_on(changeset) == %{money: ["must be greater than or equal to 5.01"]}
+    end
+
+    test "decimal, max: 5.01" do
+      schema = %{money: [type: :decimal, max: 5.01]}
+
+      data_1 = %{"money" => 4.99}
+      data_2 = %{"money" => 5.02}
+
+      assert Goal.validate_params(data_1, schema) == {:ok, %{money: Decimal.from_float(4.99)}}
+      assert {:error, changeset} = Goal.validate_params(data_2, schema)
+      assert errors_on(changeset) == %{money: ["must be less than or equal to 5.01"]}
+    end
+
     test "map" do
       data = %{
         "map" => %{
