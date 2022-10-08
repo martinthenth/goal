@@ -26,7 +26,7 @@ defmodule Goal.Regex do
   @doc false
   @spec password :: Regex.t()
   def password do
-    Application.get_env(:goal, :password_regex, ~r/^(?=.*[0-9])(?=.*[a-zA-Z])([a-zA-Z0-9]+)$/)
+    Application.get_env(:goal, :password_regex, ~r/^(?=.*[a-zA-Z])(?=.*[0-9])/)
   end
 
   @doc false
