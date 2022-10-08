@@ -1,3 +1,10 @@
+# 0.1.2
+
+No breaking changes.
+
+- Adds `:uuid` type
+- Improves password regex to allow non-alphanumeric characters
+
 # 0.1.1
 
 No breaking changes.
