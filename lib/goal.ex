@@ -274,7 +274,11 @@ defmodule Goal do
           %{atom => [term]}
   defdelegate traverse_errors(changeset, msg_func), to: Goal.Changeset
 
-  defp build_changeset(params, schema) do
+  @doc """
+  TODO: Add docs and tests
+  """
+  @spec build_changeset(params, schema) :: Changeset.t()
+  def build_changeset(params, schema) do
     types = get_types(schema)
 
     {%{}, types}
