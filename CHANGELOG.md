@@ -1,3 +1,10 @@
+# 0.1.3
+
+No breaking changes.
+
+- Exposes `build_changeset/2` in the main namespace (`Goal`)
+- Updates documentation for use with LiveViews
+
 # 0.1.2
 
 No breaking changes.
