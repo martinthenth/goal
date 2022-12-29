@@ -15,7 +15,7 @@ Add `goal` to the list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:goal, "~> 0.1.1"}
+    {:goal, "~> 0.1"}
   ]
 end
 ```
@@ -224,7 +224,7 @@ All field types, exluding `:map` and `{:array, :map}`, can use `:equals`, `:subs
 - [x] Add macro for generating validation schemas `defschema`
 - [x] Release v0.1.0 on Hex.pm
 - [ ] Convert incoming params from `camelCase` to `snake_case`
-- [ ] Add LiveView support for building validation changesets
+- [x] Add LiveView support for building validation changesets
 - [ ] Add macro for generating changesets `defchangeset`
 
 ## Credits
