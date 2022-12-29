@@ -1,22 +1,23 @@
 defmodule Goal do
   @moduledoc ~S"""
-  Goal is a parameter validation library based on Ecto.
+  Goal is a parameter validation library based on [Ecto](https://github.com/elixir-ecto/ecto).
+  It can be used with JSON APIs (using `validate_params/2`) and with LiveViews (using
+  `build_changeset/2`).
 
-  Goal takes the `params` (e.g. from an Phoenix controller), validates them against a schema,
-  and returns an atom-based map or an error changeset. It's based on
-  [Ecto](https://github.com/elixir-ecto/ecto), so every validation that you have for database
-  fields can be applied in validating parameters.
+  For JSON APIs, Goal takes the `params` (from a controller), validates them against
+  a schema, and returns an atom-based map or an error changeset.
 
-  Goal is different from other validation libraries because of its syntax, being Ecto-based,
-  and validating data using functions from `Ecto.Changeset` instead of building embedded
-  `Ecto.Schema`s in the background.
+  For LiveViews, Goal takes the `params` (from `handle_event/3`) and a validation schema
+  to build an `Ecto.Changeset`. You can use this changeset in your LiveViews as you would with
+  database schemas.
 
-  Additionally, Goal allows you to configure your own regexes. This is helpful in case of backward
-  compatibility, where Goal's defaults might not match your production system's behavior.
+  You can configure your own regexes for password, email, and URL format validations. This is
+  helpful in case of backward compatibility, where Goal's defaults might not match your
+  production system's behavior.
 
-  ## Usage
+  ## Usage with JSON APIs
 
-  Goal's entry point is `Goal.validate_params/2`, which receives the parameters and a validation
+  Goal's entry point is `validate_params/2`, which receives the parameters and a validation
   schema. The parameters must be a map, and can be string-based or atom-based. Goal needs a
   validation schema (also a map) to parse and validate the parameters. You can build one with
   the `defschema` macro:
@@ -48,6 +49,44 @@ defmodule Goal do
     end
   end
   ```
+
+  ## Usage with LiveViews
+
+  Goal exposes the `build_changeset/2` function, which takes the event parameters and a
+  validation schema to build a changeset.
+
+  ```elixir
+  defmodule MyApp.SomeLiveView do
+    import Goal
+    import Goal.Syntax
+
+    def handle_event("validate", %{"some" => some_params}, socket) do
+      changeset =
+        some_params
+        |> build_changeset(schema())
+        |> Map.put(:action, :validate)
+
+      {:noreply, assign(socket, :changeset, changeset)}
+    end
+
+    defp schema do
+      defschema do
+        required :uuid, :string, format: :uuid
+        required :name, :string, min: 3, max: 3
+        optional :age, :integer, min: 0, max: 120
+        optional :gender, :enum, values: ["female", "male", "non-binary"]
+
+        optional :data, :map do
+          required :color, :string
+          optional :money, :decimal
+          optional :height, :float
+        end
+      end
+    end
+  end
+  ```
+
+  ## Under the hood
 
   The `defschema` macro converts the given structure into a validation schema at compile-time.
   You can also use the basic syntax like in the example below. The basic syntax is what
@@ -238,7 +277,7 @@ defmodule Goal do
   @type error :: {String.t(), Keyword.t()}
 
   @doc ~S"""
-  Validates parameters against a schema.
+  Validates parameters against a validation schema.
 
   ## Examples
 
@@ -258,6 +297,29 @@ defmodule Goal do
   end
 
   @doc ~S"""
+  Builds an `Ecto.Changeset` using the parameters and a validation schema.
+
+  ## Examples
+
+      iex> build_changeset(%{"email" => "jane@example.com"}, %{email: [format: :email]})
+      %Ecto.Changeset{valid?: true, changes: %{email: "jane@example.com"}}
+
+      iex> build_changeset(%{"email" => "invalid"}, %{email: [format: :email]})
+      %Ecto.Changeset{valid?: false, errors: [email: {"has invalid format", ...}]}
+
+  """
+  @spec build_changeset(params, schema) :: Changeset.t()
+  def build_changeset(params, schema) do
+    types = get_types(schema)
+
+    {%{}, types}
+    |> Changeset.cast(params, Map.keys(types))
+    |> validate_required_fields(schema)
+    |> validate_basic_fields(schema)
+    |> validate_nested_fields(types, schema)
+  end
+
+  @doc ~S"""
   Traverses changeset errors and applies the given function to error messages.
 
   ## Examples
@@ -273,20 +335,6 @@ defmodule Goal do
   @spec traverse_errors(Changeset.t(), (error -> binary) | (Changeset.t(), atom, error -> binary)) ::
           %{atom => [term]}
   defdelegate traverse_errors(changeset, msg_func), to: Goal.Changeset
-
-  @doc """
-  TODO: Add docs and tests
-  """
-  @spec build_changeset(params, schema) :: Changeset.t()
-  def build_changeset(params, schema) do
-    types = get_types(schema)
-
-    {%{}, types}
-    |> Changeset.cast(params, Map.keys(types))
-    |> validate_required_fields(schema)
-    |> validate_basic_fields(schema)
-    |> validate_nested_fields(types, schema)
-  end
 
   defp get_types(schema) do
     Enum.reduce(schema, %{}, fn {field, rules}, acc ->
