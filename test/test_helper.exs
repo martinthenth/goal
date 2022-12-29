@@ -1,6 +1,8 @@
 ExUnit.start()
 
 defmodule Goal.Helpers do
+  def changes_on(changeset), do: changeset.changes
+
   def errors_on(changeset) do
     Goal.traverse_errors(changeset, fn {message, opts} ->
       Regex.replace(~r"%{(\w+)}", message, fn _map, key ->
