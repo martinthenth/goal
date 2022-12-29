@@ -20,9 +20,9 @@ def deps do
 end
 ```
 
-## Usage
+## Usage with JSON APIs
 
-Goal's entry point is `Goal.validate_params/2`, which receives the parameters and a validation schema. The parameters must be a map, and can be string-based or atom-based. Goal needs a validation schema (also a map) to parse and validate the parameters. You can build one with the `defschema` macro:
+Goal's entry point is `validate_params/2`, which receives the parameters and a validation schema. The parameters must be a map, and can be string-based or atom-based. Goal needs a validation schema (also a map) to parse and validate the parameters. You can build one with the `defschema` macro:
 
 ```elixir
 defmodule MyApp.SomeController do
@@ -51,6 +51,43 @@ defmodule MyApp.SomeController do
   end
 end
 ```
+
+## Usage with LiveViews
+
+Goal exposes the `build_changeset/2` function, which takes the event parameters and a validation schema to build a changeset.
+
+```elixir
+defmodule MyApp.SomeLiveView do
+  import Goal
+  import Goal.Syntax
+
+  def handle_event("validate", %{"some" => some_params}, socket) do
+    changeset =
+      some_params
+      |> build_changeset(schema())
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, :changeset, changeset)}
+  end
+
+  defp schema do
+    defschema do
+      required :uuid, :string, format: :uuid
+      required :name, :string, min: 3, max: 3
+      optional :age, :integer, min: 0, max: 120
+      optional :gender, :enum, values: ["female", "male", "non-binary"]
+
+      optional :data, :map do
+        required :color, :string
+        optional :money, :decimal
+        optional :height, :float
+      end
+    end
+  end
+end
+```
+
+## Under the hood
 
 The `defschema` macro converts the given structure into a validation schema at compile-time. You can also use the basic syntax like in the example below. The basic syntax is what `defschema` compiles to.
 
