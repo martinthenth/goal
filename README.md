@@ -1,10 +1,12 @@
 # Goal ⚽
 
-A library for parsing and validating parameters. Goal takes the `params` (e.g. from an Phoenix controller), validates them against a schema, and returns an atom-based map or an error changeset. It's based on [Ecto](https://github.com/elixir-ecto/ecto), so every validation that you have for database fields can be applied in validating parameters.
+Goal is a parameter validation library based on [Ecto](https://github.com/elixir-ecto/ecto). It can be used with JSON APIs (using `validate_params/2`) and with LiveViews (using `build_changeset/2`).
 
-Goal is different from other validation libraries because of its syntax, being Ecto-based, and validating data using functions from `Ecto.Changeset` instead of building embedded `Ecto.Schema`s in the background.
+For JSON APIs, Goal takes the `params` (from a controller action), validates them against a schema, and returns an atom-based map or an error changeset.
 
-Additionally, Goal allows you to configure your own regexes. This is helpful in case of backward compatibility, where Goal's defaults might not match your production system's behavior.
+For LiveViews, Goal takes the `params` (from `handle_event/3`) and a validation schema to build an `Ecto.Changeset`. You can use this changeset in your LiveViews as you would with database schemas.
+
+You can configure your own regexes for password, email, and URL format validations. This is helpful in case of backward compatibility, where Goal's defaults might not match your production system's behavior.
 
 ## Installation
 
@@ -217,11 +219,13 @@ All field types, exluding `:map` and `{:array, :map}`, can use `:equals`, `:subs
 ## Roadmap
 
 - [x] Bring your own regex
-- [x] ExDoc documentation
+- [x] Add ExDoc documentation
 - [x] Basic syntax optimizations
-- [x] Macro for generating schemas without boilerplate
+- [x] Add macro for generating validation schemas `defschema`
 - [x] Release v0.1.0 on Hex.pm
 - [ ] Convert incoming params from `camelCase` to `snake_case`
+- [ ] Add LiveView support for building validation changesets
+- [ ] Add macro for generating changesets `defchangeset`
 
 ## Credits
 
