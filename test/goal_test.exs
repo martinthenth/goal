@@ -4,6 +4,26 @@ defmodule GoalTest do
   import Goal.Helpers
 
   describe "validate_params/2" do
+    test "valid params" do
+      schema = %{name: [type: :string, is: 4]}
+
+      data = %{"name" => "Jane"}
+
+      assert Goal.validate_params(data, schema) == {:ok, %{name: "Jane"}}
+    end
+
+    test "invalid params" do
+      schema = %{name: [type: :string, is: 4]}
+
+      data = %{"name" => "Joe"}
+
+      {:error, changeset} = Goal.validate_params(data, schema)
+
+      assert errors_on(changeset) == %{name: ["should be 4 character(s)"]}
+    end
+  end
+
+  describe "build_changeset/2" do
     test "valid example" do
       data = %{
         "required" => "required",
@@ -75,42 +95,42 @@ defmodule GoalTest do
         enum: [type: :enum, values: ["male", "female", "non-binary"]]
       }
 
-      assert Goal.validate_params(data, schema) ==
-               {:ok,
-                %{
-                  required: "required",
-                  id: 1,
-                  uuid: "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
-                  format_uuid: "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
-                  string: "Jane",
-                  is_string: "Joly",
-                  min_string: "John",
-                  max_string: "Joe",
-                  trimmed_string: "human",
-                  squished_string: "homo sapien",
-                  integer: 29,
-                  less_than_integer: 5,
-                  greater_than_integer: 9,
-                  list: ["1", "2"],
-                  integer_list: [1, 2],
-                  boolean_list: [true, false],
-                  boolean: true,
-                  map: %{
-                    "key" => "value"
-                  },
-                  nested_map: %{
-                    key: "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
-                    map: %{
-                      "key" => "value"
-                    }
-                  },
-                  float: 60.5,
-                  decimal: Decimal.from_float(100.04),
-                  email: "jane.doe@example.com",
-                  password: "password123",
-                  url: "https://www.example.com",
-                  enum: :female
-                }}
+      changeset = Goal.build_changeset(data, schema)
+
+      assert changes_on(changeset) == %{
+               required: "required",
+               id: 1,
+               uuid: "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
+               format_uuid: "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
+               string: "Jane",
+               is_string: "Joly",
+               min_string: "John",
+               max_string: "Joe",
+               trimmed_string: "human",
+               squished_string: "homo sapien",
+               integer: 29,
+               less_than_integer: 5,
+               greater_than_integer: 9,
+               list: ["1", "2"],
+               integer_list: [1, 2],
+               boolean_list: [true, false],
+               boolean: true,
+               map: %{
+                 "key" => "value"
+               },
+               nested_map: %{
+                 key: "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
+                 map: %{
+                   "key" => "value"
+                 }
+               },
+               float: 60.5,
+               decimal: Decimal.from_float(100.04),
+               email: "jane.doe@example.com",
+               password: "password123",
+               url: "https://www.example.com",
+               enum: :female
+             }
     end
 
     test "required: true" do
@@ -119,9 +139,11 @@ defmodule GoalTest do
       data_1 = %{"field" => "yes"}
       data_2 = %{}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{field: "yes"}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{field: ["can't be blank"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{field: "yes"}
+      assert errors_on(changeset_2) == %{field: ["can't be blank"]}
     end
 
     test "equals: value" do
@@ -130,9 +152,11 @@ defmodule GoalTest do
       data_1 = %{"option" => "value"}
       data_2 = %{"option" => "notvalue"}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{option: "value"}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{option: ["is invalid"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{option: "value"}
+      assert errors_on(changeset_2) == %{option: ["is invalid"]}
     end
 
     test "excluded: values" do
@@ -141,9 +165,11 @@ defmodule GoalTest do
       data_1 = %{"car" => "ford"}
       data_2 = %{"car" => "mercedes"}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{car: "ford"}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{car: ["is reserved"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{car: "ford"}
+      assert errors_on(changeset_2) == %{car: ["is reserved"]}
     end
 
     test "included: values" do
@@ -152,9 +178,11 @@ defmodule GoalTest do
       data_1 = %{"car" => "mercedes"}
       data_2 = %{"car" => "ford"}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{car: "mercedes"}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{car: ["is invalid"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{car: "mercedes"}
+      assert errors_on(changeset_2) == %{car: ["is invalid"]}
     end
 
     test "subset: values" do
@@ -163,9 +191,11 @@ defmodule GoalTest do
       data_1 = %{"integers" => [1, 2, 3]}
       data_2 = %{"integers" => [4, 5, 6]}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{integers: [1, 2, 3]}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{integers: ["has an invalid entry"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{integers: [1, 2, 3]}
+      assert errors_on(changeset_2) == %{integers: ["has an invalid entry"]}
     end
 
     test "uuid" do
@@ -174,11 +204,11 @@ defmodule GoalTest do
       data_1 = %{"uuid" => "9d98baf6-3cd0-4431-ae24-629689b535d4"}
       data_2 = %{"uuid" => "hello-world"}
 
-      assert Goal.validate_params(data_1, schema) ==
-               {:ok, %{uuid: "9d98baf6-3cd0-4431-ae24-629689b535d4"}}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
 
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{uuid: ["is invalid"]}
+      assert changes_on(changeset_1) == %{uuid: "9d98baf6-3cd0-4431-ae24-629689b535d4"}
+      assert errors_on(changeset_2) == %{uuid: ["is invalid"]}
     end
 
     test "uuid, equals: 9d98baf6-3cd0-4431-ae24-629689b535d4" do
@@ -187,11 +217,11 @@ defmodule GoalTest do
       data_1 = %{"uuid" => "9d98baf6-3cd0-4431-ae24-629689b535d4"}
       data_2 = %{"uuid" => "16acef25-3981-4cbd-ab99-26f8691c5bec"}
 
-      assert Goal.validate_params(data_1, schema) ==
-               {:ok, %{uuid: "9d98baf6-3cd0-4431-ae24-629689b535d4"}}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
 
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{uuid: ["is invalid"]}
+      assert changes_on(changeset_1) == %{uuid: "9d98baf6-3cd0-4431-ae24-629689b535d4"}
+      assert errors_on(changeset_2) == %{uuid: ["is invalid"]}
     end
 
     test "string, min: 4" do
@@ -200,9 +230,11 @@ defmodule GoalTest do
       data_1 = %{"name" => "Jane"}
       data_2 = %{"name" => "Joe"}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{name: "Jane"}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{name: ["should be 4 character(s)"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{name: "Jane"}
+      assert errors_on(changeset_2) == %{name: ["should be 4 character(s)"]}
     end
 
     test "string, min: 5" do
@@ -211,9 +243,11 @@ defmodule GoalTest do
       data_1 = %{"name" => "Jonathan"}
       data_2 = %{"name" => "Jane"}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{name: "Jonathan"}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{name: ["should be at least 5 character(s)"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{name: "Jonathan"}
+      assert errors_on(changeset_2) == %{name: ["should be at least 5 character(s)"]}
     end
 
     test "string, max: 5" do
@@ -222,9 +256,11 @@ defmodule GoalTest do
       data_1 = %{"name" => "Jane"}
       data_2 = %{"name" => "Jonathan"}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{name: "Jane"}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{name: ["should be at most 5 character(s)"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{name: "Jane"}
+      assert errors_on(changeset_2) == %{name: ["should be at most 5 character(s)"]}
     end
 
     test "string, trim: true" do
@@ -233,8 +269,11 @@ defmodule GoalTest do
       data_1 = %{"name" => " quantum physics "}
       data_2 = %{"name" => " quantum  physics "}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{name: "quantum physics"}}
-      assert Goal.validate_params(data_2, schema) == {:ok, %{name: "quantum  physics"}}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{name: "quantum physics"}
+      assert changes_on(changeset_2) == %{name: "quantum  physics"}
     end
 
     test "string, trim: false" do
@@ -243,8 +282,11 @@ defmodule GoalTest do
       data_1 = %{"name" => " quantum physics "}
       data_2 = %{"name" => " quantum  physics "}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{name: " quantum physics "}}
-      assert Goal.validate_params(data_2, schema) == {:ok, %{name: " quantum  physics "}}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{name: " quantum physics "}
+      assert changes_on(changeset_2) == %{name: " quantum  physics "}
     end
 
     test "string, squish: true" do
@@ -252,7 +294,9 @@ defmodule GoalTest do
 
       data = %{"name" => " banana   man "}
 
-      assert Goal.validate_params(data, schema) == {:ok, %{name: "banana man"}}
+      changeset = Goal.build_changeset(data, schema)
+
+      assert changes_on(changeset) == %{name: "banana man"}
     end
 
     test "string, squish: false" do
@@ -260,7 +304,9 @@ defmodule GoalTest do
 
       data = %{"name" => " banana   man "}
 
-      assert Goal.validate_params(data, schema) == {:ok, %{name: " banana   man "}}
+      changeset = Goal.build_changeset(data, schema)
+
+      assert changes_on(changeset) == %{name: " banana   man "}
     end
 
     test "string, format: :uuid" do
@@ -269,11 +315,11 @@ defmodule GoalTest do
       data_1 = %{"uuid" => "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e"}
       data_2 = %{"uuid" => "notuuid"}
 
-      assert Goal.validate_params(data_1, schema) ==
-               {:ok, %{uuid: "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e"}}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
 
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{uuid: ["has invalid format"]}
+      assert changes_on(changeset_1) == %{uuid: "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e"}
+      assert errors_on(changeset_2) == %{uuid: ["has invalid format"]}
     end
 
     test "string, format: :email" do
@@ -282,10 +328,11 @@ defmodule GoalTest do
       data_1 = %{"email" => "jane.doe@example.com"}
       data_2 = %{"email" => "notemail"}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{email: "jane.doe@example.com"}}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
 
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{email: ["has invalid format"]}
+      assert changes_on(changeset_1) == %{email: "jane.doe@example.com"}
+      assert errors_on(changeset_2) == %{email: ["has invalid format"]}
     end
 
     test "string, format: :password" do
@@ -294,9 +341,11 @@ defmodule GoalTest do
       data_1 = %{"password" => "password123"}
       data_2 = %{"password" => "pass"}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{password: "password123"}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{password: ["has invalid format"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{password: "password123"}
+      assert errors_on(changeset_2) == %{password: ["has invalid format"]}
     end
 
     test "string, format: :url" do
@@ -305,9 +354,11 @@ defmodule GoalTest do
       data_1 = %{"url" => "https://www.example.com"}
       data_2 = %{"url" => "website"}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{url: "https://www.example.com"}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{url: ["has invalid format"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{url: "https://www.example.com"}
+      assert errors_on(changeset_2) == %{url: ["has invalid format"]}
     end
 
     test "integer, is: 5" do
@@ -316,9 +367,11 @@ defmodule GoalTest do
       data_1 = %{"age" => 5}
       data_2 = %{"age" => 4}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{age: 5}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{age: ["must be equal to 5"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{age: 5}
+      assert errors_on(changeset_2) == %{age: ["must be equal to 5"]}
     end
 
     test "integer, min: 5" do
@@ -327,9 +380,11 @@ defmodule GoalTest do
       data_1 = %{"age" => 6}
       data_2 = %{"age" => 4}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{age: 6}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{age: ["must be greater than or equal to 5"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{age: 6}
+      assert errors_on(changeset_2) == %{age: ["must be greater than or equal to 5"]}
     end
 
     test "integer, max: 10" do
@@ -338,9 +393,11 @@ defmodule GoalTest do
       data_1 = %{"age" => 9}
       data_2 = %{"age" => 12}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{age: 9}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{age: ["must be less than or equal to 11"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{age: 9}
+      assert errors_on(changeset_2) == %{age: ["must be less than or equal to 11"]}
     end
 
     test "integer, less_than: 10" do
@@ -349,9 +406,11 @@ defmodule GoalTest do
       data_1 = %{"age" => 9}
       data_2 = %{"age" => 11}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{age: 9}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{age: ["must be less than 11"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{age: 9}
+      assert errors_on(changeset_2) == %{age: ["must be less than 11"]}
     end
 
     test "integer, greater_than: 5" do
@@ -360,9 +419,11 @@ defmodule GoalTest do
       data_1 = %{"age" => 6}
       data_2 = %{"age" => 4}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{age: 6}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{age: ["must be greater than 5"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{age: 6}
+      assert errors_on(changeset_2) == %{age: ["must be greater than 5"]}
     end
 
     test "integer, less_than_or_equal_to: 5" do
@@ -372,10 +433,13 @@ defmodule GoalTest do
       data_2 = %{"age" => 4}
       data_3 = %{"age" => 6}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{age: 5}}
-      assert Goal.validate_params(data_2, schema) == {:ok, %{age: 4}}
-      assert {:error, changeset} = Goal.validate_params(data_3, schema)
-      assert errors_on(changeset) == %{age: ["must be less than or equal to 5"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+      changeset_3 = Goal.build_changeset(data_3, schema)
+
+      assert changes_on(changeset_1) == %{age: 5}
+      assert changes_on(changeset_2) == %{age: 4}
+      assert errors_on(changeset_3) == %{age: ["must be less than or equal to 5"]}
     end
 
     test "integer, greater_than_or_equal_to: 10" do
@@ -385,10 +449,13 @@ defmodule GoalTest do
       data_2 = %{"age" => 12}
       data_3 = %{"age" => 9}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{age: 11}}
-      assert Goal.validate_params(data_2, schema) == {:ok, %{age: 12}}
-      assert {:error, changeset} = Goal.validate_params(data_3, schema)
-      assert errors_on(changeset) == %{age: ["must be greater than or equal to 11"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+      changeset_3 = Goal.build_changeset(data_3, schema)
+
+      assert changes_on(changeset_1) == %{age: 11}
+      assert changes_on(changeset_2) == %{age: 12}
+      assert errors_on(changeset_3) == %{age: ["must be greater than or equal to 11"]}
     end
 
     test "integer, equal_to: 5" do
@@ -397,9 +464,11 @@ defmodule GoalTest do
       data_1 = %{"age" => 5}
       data_2 = %{"age" => 4}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{age: 5}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{age: ["must be equal to 5"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{age: 5}
+      assert errors_on(changeset_2) == %{age: ["must be equal to 5"]}
     end
 
     test "integer, not_equal_to: 10" do
@@ -408,9 +477,11 @@ defmodule GoalTest do
       data_1 = %{"age" => 9}
       data_2 = %{"age" => 11}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{age: 9}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{age: ["must be not equal to 11"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{age: 9}
+      assert errors_on(changeset_2) == %{age: ["must be not equal to 11"]}
     end
 
     test "float, is: 5.01" do
@@ -419,9 +490,11 @@ defmodule GoalTest do
       data_1 = %{"height" => 5.01}
       data_2 = %{"height" => 4.01}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{height: 5.01}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{height: ["must be equal to 5.01"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{height: 5.01}
+      assert errors_on(changeset_2) == %{height: ["must be equal to 5.01"]}
     end
 
     test "float, min: 5.01" do
@@ -430,9 +503,11 @@ defmodule GoalTest do
       data_1 = %{"height" => 5.02}
       data_2 = %{"height" => 5.00}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{height: 5.02}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{height: ["must be greater than or equal to 5.01"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{height: 5.02}
+      assert errors_on(changeset_2) == %{height: ["must be greater than or equal to 5.01"]}
     end
 
     test "float, max: 5.01" do
@@ -441,9 +516,11 @@ defmodule GoalTest do
       data_1 = %{"height" => 4.99}
       data_2 = %{"height" => 5.02}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{height: 4.99}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{height: ["must be less than or equal to 5.01"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{height: 4.99}
+      assert errors_on(changeset_2) == %{height: ["must be less than or equal to 5.01"]}
     end
 
     test "decimal, is: 5.01" do
@@ -452,9 +529,11 @@ defmodule GoalTest do
       data_1 = %{"money" => 5.01}
       data_2 = %{"money" => 4.01}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{money: Decimal.from_float(5.01)}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{money: ["must be equal to 5.01"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{money: Decimal.from_float(5.01)}
+      assert errors_on(changeset_2) == %{money: ["must be equal to 5.01"]}
     end
 
     test "decimal, min: 5.01" do
@@ -463,9 +542,11 @@ defmodule GoalTest do
       data_1 = %{"money" => 5.02}
       data_2 = %{"money" => 5.00}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{money: Decimal.from_float(5.02)}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{money: ["must be greater than or equal to 5.01"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{money: Decimal.from_float(5.02)}
+      assert errors_on(changeset_2) == %{money: ["must be greater than or equal to 5.01"]}
     end
 
     test "decimal, max: 5.01" do
@@ -474,9 +555,11 @@ defmodule GoalTest do
       data_1 = %{"money" => 4.99}
       data_2 = %{"money" => 5.02}
 
-      assert Goal.validate_params(data_1, schema) == {:ok, %{money: Decimal.from_float(4.99)}}
-      assert {:error, changeset} = Goal.validate_params(data_2, schema)
-      assert errors_on(changeset) == %{money: ["must be less than or equal to 5.01"]}
+      changeset_1 = Goal.build_changeset(data_1, schema)
+      changeset_2 = Goal.build_changeset(data_2, schema)
+
+      assert changes_on(changeset_1) == %{money: Decimal.from_float(4.99)}
+      assert errors_on(changeset_2) == %{money: ["must be less than or equal to 5.01"]}
     end
 
     test "map" do
@@ -497,14 +580,14 @@ defmodule GoalTest do
         ]
       }
 
-      assert Goal.validate_params(data, schema) ==
-               {:ok,
-                %{
-                  map: %{
-                    string: "hello",
-                    integer: 5
-                  }
-                }}
+      changeset = Goal.build_changeset(data, schema)
+
+      assert changes_on(changeset) == %{
+               map: %{
+                 string: "hello",
+                 integer: 5
+               }
+             }
     end
 
     test "invalid nested map" do
@@ -534,7 +617,7 @@ defmodule GoalTest do
         }
       }
 
-      assert {:error, %Ecto.Changeset{} = changeset} = Goal.validate_params(data, schema)
+      changeset = Goal.build_changeset(data, schema)
 
       assert errors_on(changeset) == %{
                key_1: ["is invalid"],
@@ -578,7 +661,7 @@ defmodule GoalTest do
         ]
       }
 
-      assert {:error, %Ecto.Changeset{} = changeset} = Goal.validate_params(data, schema)
+      changeset = Goal.build_changeset(data, schema)
 
       assert errors_on(changeset) == %{
                map_1: %{
@@ -600,7 +683,9 @@ defmodule GoalTest do
         list: [type: {:array, :string}]
       }
 
-      assert Goal.validate_params(data, schema) == {:ok, %{list: ["one", "two", "three"]}}
+      changeset = Goal.build_changeset(data, schema)
+
+      assert changes_on(changeset) == %{list: ["one", "two", "three"]}
     end
 
     test "invalid list" do
@@ -612,7 +697,7 @@ defmodule GoalTest do
         list: [type: {:array, :integer}]
       }
 
-      assert {:error, %Ecto.Changeset{} = changeset} = Goal.validate_params(data, schema)
+      changeset = Goal.build_changeset(data, schema)
 
       assert errors_on(changeset) == %{list: ["is invalid"]}
     end
@@ -629,8 +714,9 @@ defmodule GoalTest do
         list: [type: {:array, :map}]
       }
 
-      assert Goal.validate_params(data, schema) ==
-               {:ok, %{list: [%{"string" => "hello"}, %{"string" => "world"}]}}
+      changeset = Goal.build_changeset(data, schema)
+
+      assert changes_on(changeset) == %{list: [%{"string" => "hello"}, %{"string" => "world"}]}
     end
 
     test "list of maps" do
@@ -651,14 +737,14 @@ defmodule GoalTest do
         ]
       }
 
-      assert Goal.validate_params(data, schema) ==
-               {:ok,
-                %{
-                  list: [
-                    %{string: "hello", integer: 1},
-                    %{string: "world", integer: 2}
-                  ]
-                }}
+      changeset = Goal.build_changeset(data, schema)
+
+      assert changes_on(changeset) == %{
+               list: [
+                 %{string: "hello", integer: 1},
+                 %{string: "world", integer: 2}
+               ]
+             }
     end
 
     test "list of invalid maps" do
@@ -679,7 +765,7 @@ defmodule GoalTest do
         ]
       }
 
-      assert {:error, changeset} = Goal.validate_params(data, schema)
+      changeset = Goal.build_changeset(data, schema)
 
       assert errors_on(changeset) == %{
                list: [
@@ -734,28 +820,28 @@ defmodule GoalTest do
         ]
       }
 
-      assert Goal.validate_params(data, schema) ==
-               {:ok,
-                %{
-                  list: [
-                    %{
-                      string: "hello",
-                      integer: 1,
-                      map: %{
-                        string1: "banana",
-                        string2: "man"
-                      }
-                    },
-                    %{
-                      string: "world",
-                      integer: 2,
-                      map: %{
-                        string1: "banana",
-                        string2: "man"
-                      }
-                    }
-                  ]
-                }}
+      changeset = Goal.build_changeset(data, schema)
+
+      assert changes_on(changeset) == %{
+               list: [
+                 %{
+                   string: "hello",
+                   integer: 1,
+                   map: %{
+                     string1: "banana",
+                     string2: "man"
+                   }
+                 },
+                 %{
+                   string: "world",
+                   integer: 2,
+                   map: %{
+                     string1: "banana",
+                     string2: "man"
+                   }
+                 }
+               ]
+             }
     end
 
     test "missing schema rules" do
@@ -771,7 +857,9 @@ defmodule GoalTest do
         string_1: [type: :string]
       }
 
-      assert Goal.validate_params(data, schema) == {:ok, %{string_1: "world"}}
+      changeset = Goal.build_changeset(data, schema)
+
+      assert changes_on(changeset) == %{string_1: "world"}
     end
 
     test "missing data" do
@@ -784,7 +872,9 @@ defmodule GoalTest do
         string_2: [type: :string]
       }
 
-      assert Goal.validate_params(data, schema) == {:ok, %{string_1: "world"}}
+      changeset = Goal.build_changeset(data, schema)
+
+      assert changes_on(changeset) == %{string_1: "world"}
     end
 
     test "missing maps in data" do
@@ -804,7 +894,9 @@ defmodule GoalTest do
         ]
       }
 
-      assert Goal.validate_params(data, schema) == {:ok, %{string_1: "world"}}
+      changeset = Goal.build_changeset(data, schema)
+
+      assert changes_on(changeset) == %{string_1: "world"}
     end
 
     test "missing required data" do
@@ -817,7 +909,7 @@ defmodule GoalTest do
         string_2: [type: :string, required: true]
       }
 
-      assert {:error, %Ecto.Changeset{} = changeset} = Goal.validate_params(data, schema)
+      changeset = Goal.build_changeset(data, schema)
 
       assert errors_on(changeset) == %{
                string_2: ["can't be blank"]
@@ -842,7 +934,7 @@ defmodule GoalTest do
         ]
       }
 
-      assert {:error, %Ecto.Changeset{} = changeset} = Goal.validate_params(data, schema)
+      changeset = Goal.build_changeset(data, schema)
 
       assert errors_on(changeset) == %{
                string_2: ["can't be blank"],
@@ -868,14 +960,14 @@ defmodule GoalTest do
         ]
       }
 
-      assert Goal.validate_params(data, schema) ==
-               {:ok,
-                %{
-                  map: %{
-                    string: "hello",
-                    integer: 5
-                  }
-                }}
+      changeset = Goal.build_changeset(data, schema)
+
+      assert changes_on(changeset) == %{
+               map: %{
+                 string: "hello",
+                 integer: 5
+               }
+             }
     end
   end
 end
