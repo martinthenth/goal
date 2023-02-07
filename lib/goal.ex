@@ -1,119 +1,89 @@
 defmodule Goal do
   @moduledoc ~S"""
   Goal is a parameter validation library based on [Ecto](https://github.com/elixir-ecto/ecto).
-  It can be used with JSON APIs (using `validate_params/2`) and with LiveViews (using
-  `build_changeset/2`).
-
-  For JSON APIs, Goal takes the `params` (from a controller), validates them against
-  a schema, and returns an atom-based map or an error changeset.
-
-  For LiveViews, Goal takes the `params` (from `handle_event/3`) and a validation schema
-  to build an `Ecto.Changeset`. You can use this changeset in your LiveViews as you would with
-  database schemas.
+  It can be used with JSON APIs, HTML controllers and LiveViews.
 
   You can configure your own regexes for password, email, and URL format validations. This is
   helpful in case of backward compatibility, where Goal's defaults might not match your
   production system's behavior.
 
-  ## Usage with JSON APIs
+  ## Example with controllers
 
-  Goal's entry point is `validate_params/2`, which receives the parameters and a validation
-  schema. The parameters must be a map, and can be string-based or atom-based. Goal needs a
-  validation schema (also a map) to parse and validate the parameters. You can build one with
-  the `defschema` macro:
+  With JSON and HTML-based APIs, Goal takes the `params` from a controller action, validates those
+  against a validation schema using `validate/2`, and returns an atom-based map or an error
+  changeset.
 
   ```elixir
   defmodule MyApp.SomeController do
-    import Goal
-    import Goal.Syntax
+    use MyApp, :controller
+    use Goal
 
     def create(conn, params) do
-      with {:ok, attrs} <- validate_params(params, schema()) do
+      with {:ok, attrs} <- validate(:create, params)) do
         ...
+      else
+        {:error, changeset} -> {:error, changeset}
       end
     end
 
-    defp schema do
-      defschema do
-        required :uuid, :string, format: :uuid
-        required :name, :string, min: 3, max: 3
-        optional :age, :integer, min: 0, max: 120
-        optional :gender, :enum, values: ["female", "male", "non-binary"]
+    defparams :create do
+      required :uuid, :string, format: :uuid
+      required :name, :string, min: 3, max: 3
+      optional :age, :integer, min: 0, max: 120
+      optional :gender, :enum, values: ["female", "male", "non-binary"]
 
-        optional :data, :map do
-          required :color, :string
-          optional :money, :decimal
-          optional :height, :float
-        end
+      optional :data, :map do
+        required :color, :string
+        optional :money, :decimal
+        optional :height, :float
       end
     end
   end
   ```
 
-  ## Usage with LiveViews
+  ## Example with LiveViews
 
-  Goal exposes the `build_changeset/2` function, which takes the event parameters and a
-  validation schema to build a changeset.
+  With LiveViews, Goal builds a changeset in `mount/3` that is assigned in the socket, and then it
+  takes the `params` from `handle_event/3`, validates those against a validation schema, and
+  returns an atom-based map or an error changeset.
 
   ```elixir
   defmodule MyApp.SomeLiveView do
-    import Goal
-    import Goal.Syntax
+    use MyApp, :live_view
+    use Goal
 
-    def handle_event("validate", %{"some" => some_params}, socket) do
-      changeset =
-        some_params
-        |> build_changeset(schema())
-        |> Map.put(:action, :validate)
+    def mount(params, _session, socket) do
+      changeset = changeset(:new, %{})
+      socket = assign(socket, :changeset, changeset)
 
-      {:noreply, assign(socket, :changeset, changeset)}
+      {:ok, socket}
     end
 
-    defp schema do
-      defschema do
-        required :uuid, :string, format: :uuid
-        required :name, :string, min: 3, max: 3
-        optional :age, :integer, min: 0, max: 120
-        optional :gender, :enum, values: ["female", "male", "non-binary"]
+    def handle_event("validate", %{"some" => params}, socket) do
+      changeset = changeset(:new, params)
+      socket = assign(socket, :changeset, changeset)
 
-        optional :data, :map do
-          required :color, :string
-          optional :money, :decimal
-          optional :height, :float
-        end
+      {:noreply, socket}
+    end
+
+    def handle_event("save", %{"some" => params}, socket) do
+      with {:ok, attrs} <- validate(:create, params)) do
+        ...
+      else
+        {:error, changeset} -> {:noreply, assign(socket, :changeset, changeset)}
       end
     end
-  end
-  ```
 
-  ## Under the hood
+    defparams :new do
+      required :uuid, :string, format: :uuid
+      required :name, :string, min: 3, max: 3
+      optional :age, :integer, min: 0, max: 120
+      optional :gender, :enum, values: ["female", "male", "non-binary"]
 
-  The `defschema` macro converts the given structure into a validation schema at compile-time.
-  You can also use the basic syntax like in the example below. The basic syntax is what
-  `defschema` compiles to.
-
-  ```elixir
-  defmodule MyApp.SomeController do
-    import Goal
-
-    @schema %{
-      id: [format: :uuid, required: true],
-      name: [min: 3, max: 20, required: true],
-      age: [type: :integer, min: 0, max: 120],
-      gender: [type: :enum, values: ["female", "male", "non-binary"]],
-      data: [
-        type: :map,
-        properties: %{
-          color: [required: true],
-          money: [type: :decimal],
-          height: [type: :float]
-        }
-      ]
-    }
-
-    def create(conn, params) do
-      with {:ok, attrs} <- validate_params(params, @schema) do
-        ...
+      optional :data, :map do
+        required :color, :string
+        optional :money, :decimal
+        optional :height, :float
       end
     end
   end
@@ -141,64 +111,22 @@ defmodule Goal do
   maps. There is no limitation on depth.
 
   ```elixir
-  params = %{
-    "nested_map" => %{
-      "map" => %{
-        "inner_map" => %{
-          "id" => 123,
-          "list" => [1, 2, 3]
-        }
-      }
-    }
-  }
+  use Goal
 
-  schema = %{
-    nested_map: [
-      type: :map,
-      properties: %{
-        inner_map: [
-          type: :map,
-          properties: %{
-            map: [
-              type: :map,
-              properties: %{
-                id: [type: :integer, required: true],
-                list: [type: {:array, :integer}]
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  }
-
-  iex(3)> Goal.validate_params(params, schema)
-  {:ok, %{nested_map: %{inner_map: %{map: %{id: 123, list: [1, 2, 3]}}}}}
-  ```
-
-  ### Use defschema to reduce boilerplate
-
-  Goal provides a macro called `Goal.Syntax.defschema/1` to build validation schemas without all
-  the boilerplate code. The previous example of deeply nested maps can be rewritten to:
-
-  ```elixir
-  import Goal.Syntax
-
-  params = %{...}
-
-  schema =
-    defschema do
-      optional :nested_map, :map do
-        optional :inner_map, :map do
-          optional :map, :map do
-            required :id, :integer
-            optional :list, {:array, :integer}
-          end
+  defparams do
+    optional :nested_map, :map do
+      required :id, :integer
+      optional :inner_map, :map do
+        required :id, :integer
+        optional :map, :map do
+          required :id, :integer
+          optional :list, {:array, :integer}
         end
       end
     end
+  end
 
-  iex(3)> Goal.validate_params(params, schema)
+  iex(1)> Goal.validate_params(schema(), params)
   {:ok, %{nested_map: %{inner_map: %{map: %{id: 123, list: [1, 2, 3]}}}}}
   ```
 
@@ -272,25 +200,170 @@ defmodule Goal do
 
   alias Ecto.Changeset
 
-  @type params :: map()
+  @typedoc false
+  @type name :: atom() | binary()
+
+  @typedoc false
   @type schema :: map()
+
+  @typedoc false
+  @type params :: map()
+
+  @typedoc false
   @type error :: {String.t(), Keyword.t()}
+
+  @typedoc false
+  @type changeset :: Changeset.t()
+
+  @typedoc false
+  @type block :: {:__block__, any, any}
+
+  @typedoc false
+  @type do_block :: [do: block()]
+
+  @doc false
+  @spec __using__(block()) :: any()
+  defmacro __using__(_) do
+    quote do
+      import Goal, only: [defparams: 1, defparams: 2, build_changeset: 2]
+
+      @typedoc false
+      @type name :: atom() | binary()
+
+      @typedoc false
+      @type params :: map()
+
+      @typedoc false
+      @type changeset :: Changeset.t()
+
+      @doc """
+      Builds a changeset from the schema and params.
+      """
+      @spec changeset(name(), params()) :: changeset()
+      def changeset(name, params \\ %{}) do
+        name
+        |> schema()
+        |> build_changeset(params)
+      end
+
+      @doc """
+      Returns the validated parameters or an error changeset.
+      """
+      @spec validate(changeset()) :: {:ok, params()} | {:error, changeset()}
+      def validate(%Changeset{valid?: true, changes: changes}), do: {:ok, changes}
+      def validate(%Changeset{valid?: false} = changeset), do: {:error, changeset}
+
+      @doc """
+      Returns the validated parameters or an error changeset.
+      Expects a schema to be defined with `defparams`.
+      """
+      @spec validate(name(), params()) :: {:ok, params()} | {:error, changeset()}
+      def validate(name, params \\ %{}) do
+        name
+        |> changeset(params)
+        |> validate()
+      end
+    end
+  end
+
+  @doc """
+  A macro for defining validation schemas. Can be assigned to a variable.
+
+  ```elixir
+  import Goal
+
+  defp schema do
+    defschema do
+      required :id, :string, format: :uuid
+      required :name, :string
+      optional :age, :integer, min: 0, max: 120
+      optional :gender, :enum, values: ["female", "male", "non-binary"]
+
+      required :data, :map do
+        required :city, :string
+        optional :birthday, :date
+      end
+    end
+  end
+  ```
+  """
+  @spec defschema(do_block()) :: any
+  defmacro defschema(do: block) do
+    block
+    |> generate_schema()
+    |> Macro.escape()
+  end
+
+  @doc """
+  A macro for defining validation schemas encapsulated in a `schema` function with arity 0.
+
+  ```elixir
+  defmodule UserSchema do
+    use Goal
+
+    defparams :index do
+      required :id, :string, format: :uuid
+    end
+  end
+
+  iex(1)> schema()
+  %{id: [type: :integer, required: true]}]
+  ```
+  """
+  @spec defparams(do_block()) :: any
+  defmacro defparams(do: block) do
+    quote do
+      def schema do
+        unquote(block |> generate_schema() |> Macro.escape())
+      end
+    end
+  end
+
+  @doc """
+  A macro for defining validation schemas encapsulated in a `schema` function with arity 1.
+  The argument can be an atom or a binary.
+
+  ```elixir
+  defmodule UserSchema do
+    use Goal
+
+    defparams :index do
+      required :id, :string, format: :uuid
+    end
+  end
+
+  iex(1)> UserSchema.schema(:index)
+  %{id: [type: :integer, required: true]}]
+  iex(2)> UserSchema.changeset(:index, %{id: 12})
+  %Ecto.Changeset{valid?: true, changes: %{id: 12}}
+  iex(3)> UserSchema.validate(:index, %{id: 12})
+  {:ok, %{id: 12}}
+  ```
+  """
+  @spec defparams(name(), do_block()) :: any
+  defmacro defparams(name, do: block) do
+    quote do
+      def schema(unquote(name)) do
+        unquote(block |> generate_schema() |> Macro.escape())
+      end
+    end
+  end
 
   @doc ~S"""
   Validates parameters against a validation schema.
 
   ## Examples
 
-      iex> validate_params(%{"email" => "jane@example.com"}, %{email: [format: :email]})
+      iex> validate_params(%{email: [format: :email]}, %{"email" => "jane@example.com"})
       {:ok, %{email: "jane@example.com"}}
 
-      iex> validate_params(%{"email" => "invalid"}, %{email: [format: :email]})
+      iex> validate_params(%{email: [format: :email]}, %{"email" => "invalid"})
       {:error, %Ecto.Changeset{valid?: false, errors: [email: {"has invalid format", ...}]}}
 
   """
-  @spec validate_params(params, schema) :: {:ok, map} | {:error, Changeset.t()}
-  def validate_params(params, schema) do
-    case build_changeset(params, schema) do
+  @spec validate_params(schema(), params()) :: {:ok, params()} | {:error, changeset()}
+  def validate_params(schema, params) do
+    case build_changeset(schema, params) do
       %Changeset{valid?: true, changes: changes} -> {:ok, changes}
       %Changeset{valid?: false} = changeset -> {:error, changeset}
     end
@@ -301,15 +374,15 @@ defmodule Goal do
 
   ## Examples
 
-      iex> build_changeset(%{"email" => "jane@example.com"}, %{email: [format: :email]})
+      iex> build_changeset(%{email: [format: :email]}, %{"email" => "jane@example.com"})
       %Ecto.Changeset{valid?: true, changes: %{email: "jane@example.com"}}
 
-      iex> build_changeset(%{"email" => "invalid"}, %{email: [format: :email]})
+      iex> build_changeset(%{email: [format: :email]}, %{"email" => "invalid"})
       %Ecto.Changeset{valid?: false, errors: [email: {"has invalid format", ...}]}
 
   """
-  @spec build_changeset(params, schema) :: Changeset.t()
-  def build_changeset(params, schema) do
+  @spec build_changeset(schema(), params()) :: Changeset.t()
+  def build_changeset(schema, params) do
     types = get_types(schema)
 
     {%{}, types}
@@ -317,6 +390,7 @@ defmodule Goal do
     |> validate_required_fields(schema)
     |> validate_basic_fields(schema)
     |> validate_nested_fields(types, schema)
+    |> Map.put(:action, :validate)
   end
 
   @doc ~S"""
@@ -332,9 +406,51 @@ defmodule Goal do
       %{title: ["should be at least 3 characters"]}
 
   """
-  @spec traverse_errors(Changeset.t(), (error -> binary) | (Changeset.t(), atom, error -> binary)) ::
-          %{atom => [term]}
+  @spec traverse_errors(
+          changeset(),
+          (error() -> binary()) | (changeset(), atom(), error() -> binary())
+        ) :: %{atom() => [term()]}
   defdelegate traverse_errors(changeset, msg_func), to: Goal.Changeset
+
+  defp generate_schema({:__block__, _lines, contents}) do
+    Enum.reduce(contents, %{}, fn function, acc ->
+      Map.merge(acc, generate_schema(function))
+    end)
+  end
+
+  defp generate_schema({:optional, _lines, [field, type]}) do
+    %{field => [{:type, type}]}
+  end
+
+  defp generate_schema({:optional, _lines, [field, type, options]}) do
+    if block_or_function = Keyword.get(options, :do) do
+      properties = generate_schema(block_or_function)
+      clean_options = Keyword.delete(options, :do)
+
+      %{field => [{:type, type} | [{:properties, properties} | clean_options]]}
+    else
+      %{field => [{:type, type} | options]}
+    end
+  end
+
+  defp generate_schema({:required, _lines, [field, type]}) do
+    %{field => [{:type, type}, {:required, true}]}
+  end
+
+  defp generate_schema({:required, _lines, [field, type, options]}) do
+    if block_or_function = Keyword.get(options, :do) do
+      properties = generate_schema(block_or_function)
+      clean_options = Keyword.delete(options, :do)
+
+      %{
+        field => [
+          {:type, type} | [{:required, true} | [{:properties, properties} | clean_options]]
+        ]
+      }
+    else
+      %{field => [{:type, type} | [{:required, true} | options]]}
+    end
+  end
 
   defp get_types(schema) do
     Enum.reduce(schema, %{}, fn {field, rules}, acc ->
@@ -467,8 +583,8 @@ defmodule Goal do
     schema = Keyword.get(rules, :properties)
 
     if schema && params do
-      params
-      |> build_changeset(schema)
+      schema
+      |> build_changeset(params)
       |> case do
         %Changeset{valid?: true, changes: inner_changes} ->
           put_in(changeset, [Access.key(:changes), Access.key(field)], inner_changes)
@@ -491,8 +607,8 @@ defmodule Goal do
     if schema do
       {valid?, changesets} =
         Enum.reduce(params, {true, []}, fn params, {boolean, list} ->
-          params
-          |> build_changeset(schema)
+          schema
+          |> build_changeset(params)
           |> case do
             %Changeset{valid?: true, changes: inner_changes} ->
               {boolean, [inner_changes | list]}
