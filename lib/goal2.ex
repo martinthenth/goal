@@ -11,7 +11,7 @@ defmodule Goal2 do
   @type name :: atom() | binary()
 
   @typedoc false
-  @type rules :: map()
+  @type schema :: map()
 
   @typedoc false
   @type params :: map()
@@ -19,7 +19,14 @@ defmodule Goal2 do
   @typedoc false
   @type changeset :: Changeset.t()
 
+  @typedoc false
+  @type block :: {:__block__, any, any}
+
+  @typedoc false
+  @type do_block :: [do: block()]
+
   @doc false
+  @spec __using__(block()) :: any()
   defmacro __using__(_) do
     quote do
       import Goal2, only: [defparams: 1, defparams: 2, build_changeset: 2]
@@ -64,65 +71,82 @@ defmodule Goal2 do
   end
 
   @doc """
-  A macro for defining validation schemas.
+  A macro for defining validation schemas. Can be assigned to a variable.
 
   ```elixir
-  use Goal
+  import Goal
 
-  defparams do
-    required :id, :string, format: :uuid
+  defp schema do
+    defschema do
+      required :id, :string, format: :uuid
+      required :name, :string
+      optional :age, :integer, min: 0, max: 120
+      optional :gender, :enum, values: ["female", "male", "non-binary"]
+
+      required :data, :map do
+        required :city, :string
+        optional :birthday, :date
+      end
+    end
+  end
+  ```
+  """
+  @spec defschema(do_block()) :: any
+  defmacro defschema(do: block) do
+    block
+    |> generate_schema()
+    |> Macro.escape()
+  end
+
+  @doc """
+  A macro for defining validation schemas encapsulated in a `schema` function with arity 0.
+
+  ```elixir
+  defmodule UserSchema do
+    use Goal
+
+    defparams :index do
+      required :id, :string, format: :uuid
+    end
   end
 
   iex(1)> schema()
   %{id: [type: :integer, required: true]}]
   """
-  @spec defparams(do: {:__block__, any, any}) :: any
+  @spec defparams(do_block()) :: any
   defmacro defparams(do: block) do
     quote do
       def schema do
-        unquote do
-          block
-          |> generate_schema()
-          |> Macro.escape()
-        end
+        unquote(block |> generate_schema() |> Macro.escape())
       end
     end
   end
 
   @doc """
-  A macro for defining validation schemas that takes an identifier.
+  A macro for defining validation schemas encapsulated in a `schema` function with arity 1.
+  The argument can be an atom or a binary.
 
   ```elixir
-  use Goal
+  defmodule UserSchema do
+    use Goal
 
-  defparams :index do
-    required :id, :string, format: :uuid
-    required :name, :string
-    optional :age, :integer, min: 0, max: 120
-    optional :gender, :enum, values: ["female", "male", "non-binary"]
-
-    optional :data, :map do
-      required :city, :string
-      optional :birthday, :date
+    defparams :index do
+      required :id, :string, format: :uuid
     end
   end
 
-  iex(1)> schema(:index)
+  iex(1)> UserSchema.schema(:index)
   %{id: [type: :integer, required: true]}]
-  iex(2)> changeset(:index, %{id: 12})
+  iex(2)> UserSchema.changeset(:index, %{id: 12})
   %Ecto.Changeset{valid?: true, changes: %{id: 12}}
-  iex(3)> validate(:index, %{id: 12})
+  iex(3)> UserSchema.validate(:index, %{id: 12})
   {:ok, %{id: 12}}
   """
-  @spec defparams(name(), do: {:__block__, any, any}) :: any
+  @spec defparams(name(), do_block()) :: any
   defmacro defparams(name, do: block) do
     quote do
       def schema(unquote(name)) do
-        unquote do
-          block
-          |> generate_schema()
-          |> Macro.escape()
-        end
+        unquote(block |> generate_schema() |> Macro.escape())
       end
     end
   end
@@ -139,8 +163,7 @@ defmodule Goal2 do
       {:error, %Ecto.Changeset{valid?: false, errors: [email: {"has invalid format", ...}]}}
 
   """
-  @spec validate_params(rules() | [do: rules()], params()) ::
-          {:ok, params()} | {:error, changeset()}
+  @spec validate_params(schema(), params()) :: {:ok, params()} | {:error, changeset()}
   def validate_params(schema, params) do
     case build_changeset(params, schema) do
       %Changeset{valid?: true, changes: changes} -> {:ok, changes}
@@ -160,11 +183,7 @@ defmodule Goal2 do
       %Ecto.Changeset{valid?: false, errors: [email: {"has invalid format", ...}]}
 
   """
-  @spec build_changeset(rules() | [do: rules()], params()) :: Changeset.t()
-  def build_changeset([do: schema], params) do
-    build_changeset(schema, params)
-  end
-
+  @spec build_changeset(schema(), params()) :: Changeset.t()
   def build_changeset(schema, params) do
     types = get_types(schema)
 
