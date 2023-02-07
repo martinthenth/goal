@@ -1,6 +1,6 @@
 defmodule Goal.Regex do
   @moduledoc """
-  Defines regexes.
+  Defines regex validations.
   """
 
   @doc false
