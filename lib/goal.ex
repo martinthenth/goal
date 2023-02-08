@@ -3,26 +3,23 @@ defmodule Goal do
   Goal is a parameter validation library based on [Ecto](https://github.com/elixir-ecto/ecto).
   It can be used with JSON APIs, HTML controllers and LiveViews.
 
-  Goal builds a changeset from a validation schema and controller or liveview parameters, and
-  returns the validated parameters or changeset, depending on the function you use.
+  Goal builds a changeset from a validation schema and controller or LiveView parameters, and
+  returns the validated parameters or an `Ecto.Changeset`, depending on the function you use.
 
-  Schemas can be defined in controllers and LiveViews, or in a separate namespace like
-  `MyAppWeb.MySchema`:
+  You can configure your own regexes for password, email, and URL format validations. This is
+  helpful in case of backward compatibility, where Goal's defaults might not match your production
+  system's behavior.
+
+  ## Installation
+
+  Add `goal` to the list of dependencies in `mix.exs`:
 
   ```elixir
-  defmodule MyAppWeb.MySchema do
-    use Goal
-
-    defparams :show do
-      required :id, :string, format: :uuid
-      optional :query, :string
-    end
+  def deps do
+    [
+      {:goal, "~> 0.2"}
+    ]
   end
-
-  iex(1)> MySchema.validate(:show, %{"id" => "f86b1460-c2dc-4b7f-a28b-e3f21f3ebe7b"})
-  {:ok, %{id: "f86b1460-c2dc-4b7f-a28b-e3f21f3ebe7b"}}
-  iex(2)> MySchema.changeset(:show, %{id: "f86b1460-c2dc-4b7f-a28b-e3f21f3ebe7b"})
-  %Ecto.Changeset{valid?: true, changes: %{id: "f86b1460-c2dc-4b7f-a28b-e3f21f3ebe7b"}}
   ```
 
   ## Examples
@@ -109,6 +106,26 @@ defmodule Goal do
       end
     end
   end
+  ```
+
+  ### Example with isolated schema
+
+  Validation schemas can be defined in a separate namespace, for example `MyAppWeb.MySchema`:
+
+  ```elixir
+  defmodule MyAppWeb.MySchema do
+    use Goal
+
+    defparams :show do
+      required :id, :string, format: :uuid
+      optional :query, :string
+    end
+  end
+
+  iex(1)> MySchema.validate(:show, %{"id" => "f86b1460-c2dc-4b7f-a28b-e3f21f3ebe7b"})
+  {:ok, %{id: "f86b1460-c2dc-4b7f-a28b-e3f21f3ebe7b"}}
+  iex(2)> MySchema.changeset(:show, %{id: "f86b1460-c2dc-4b7f-a28b-e3f21f3ebe7b"})
+  %Ecto.Changeset{valid?: true, changes: %{id: "f86b1460-c2dc-4b7f-a28b-e3f21f3ebe7b"}}
   ```
 
   ## Features
