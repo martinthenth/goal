@@ -3,11 +3,33 @@ defmodule Goal do
   Goal is a parameter validation library based on [Ecto](https://github.com/elixir-ecto/ecto).
   It can be used with JSON APIs, HTML controllers and LiveViews.
 
-  You can configure your own regexes for password, email, and URL format validations. This is
-  helpful in case of backward compatibility, where Goal's defaults might not match your
-  production system's behavior.
+  Goal builds a changeset from a validation schema and controller or liveview parameters, and
+  returns the validated parameters or changeset, depending on the function you use.
 
-  ## Example with controllers
+  Schemas can be defined in controllers and LiveViews, or in a separate namespace like
+  `MyAppWeb.MySchema`:
+
+  ```elixir
+  defmodule MyAppWeb.MySchema do
+    use Goal
+
+    defparams :show do
+      required :id, :string, format: :uuid
+      optional :query, :string
+    end
+  end
+
+  iex(1)> MySchema.validate(:show, %{"id" => "f86b1460-c2dc-4b7f-a28b-e3f21f3ebe7b"})
+  {:ok, %{id: "f86b1460-c2dc-4b7f-a28b-e3f21f3ebe7b"}}
+  iex(2)> MySchema.changeset(:show, %{id: "f86b1460-c2dc-4b7f-a28b-e3f21f3ebe7b"})
+  %Ecto.Changeset{valid?: true, changes: %{id: "f86b1460-c2dc-4b7f-a28b-e3f21f3ebe7b"}}
+  ```
+
+  ## Examples
+
+  Goal can be used with LiveViews and JSON and HTML controllers.
+
+  ### Example with controllers
 
   With JSON and HTML-based APIs, Goal takes the `params` from a controller action, validates those
   against a validation schema using `validate/2`, and returns an atom-based map or an error
@@ -41,7 +63,7 @@ defmodule Goal do
   end
   ```
 
-  ## Example with LiveViews
+  ### Example with LiveViews
 
   With LiveViews, Goal builds a changeset in `mount/3` that is assigned in the socket, and then it
   takes the `params` from `handle_event/3`, validates those against a validation schema, and
@@ -67,7 +89,7 @@ defmodule Goal do
     end
 
     def handle_event("save", %{"some" => params}, socket) do
-      with {:ok, attrs} <- validate(:create, params)) do
+      with {:ok, attrs} <- validate(:new, params)) do
         ...
       else
         {:error, changeset} -> {:noreply, assign(socket, :changeset, changeset)}
@@ -298,10 +320,10 @@ defmodule Goal do
   A macro for defining validation schemas encapsulated in a `schema` function with arity 0.
 
   ```elixir
-  defmodule UserSchema do
+  defmodule MySchema do
     use Goal
 
-    defparams :index do
+    defparams do
       required :id, :string, format: :uuid
     end
   end
@@ -324,7 +346,7 @@ defmodule Goal do
   The argument can be an atom or a binary.
 
   ```elixir
-  defmodule UserSchema do
+  defmodule MySchema do
     use Goal
 
     defparams :index do
@@ -332,11 +354,11 @@ defmodule Goal do
     end
   end
 
-  iex(1)> UserSchema.schema(:index)
+  iex(1)> MySchema.schema(:index)
   %{id: [type: :integer, required: true]}]
-  iex(2)> UserSchema.changeset(:index, %{id: 12})
+  iex(2)> MySchema.changeset(:index, %{id: 12})
   %Ecto.Changeset{valid?: true, changes: %{id: 12}}
-  iex(3)> UserSchema.validate(:index, %{id: 12})
+  iex(3)> MySchema.validate(:index, %{id: 12})
   {:ok, %{id: 12}}
   ```
   """
