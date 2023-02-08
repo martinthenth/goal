@@ -283,6 +283,7 @@ defmodule Goal do
       def validate(name, params \\ %{}) do
         name
         |> changeset(params)
+        |> Map.put(:action, :validate)
         |> validate()
       end
     end
@@ -385,7 +386,10 @@ defmodule Goal do
   """
   @spec validate_params(schema(), params()) :: {:ok, params()} | {:error, changeset()}
   def validate_params(schema, params) do
-    case build_changeset(schema, params) do
+    schema
+    |> build_changeset(params)
+    |> Map.put(:action, :validate)
+    |> case do
       %Changeset{valid?: true, changes: changes} -> {:ok, changes}
       %Changeset{valid?: false} = changeset -> {:error, changeset}
     end
@@ -412,7 +416,6 @@ defmodule Goal do
     |> validate_required_fields(schema)
     |> validate_basic_fields(schema)
     |> validate_nested_fields(types, schema)
-    |> Map.put(:action, :validate)
   end
 
   @doc ~S"""

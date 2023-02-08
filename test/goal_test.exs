@@ -98,7 +98,7 @@ defmodule GoalTest do
 
     test "changeset/1" do
       assert %Ecto.Changeset{
-               action: :validate,
+               action: nil,
                changes: %{},
                errors: [id: {"can't be blank", [validation: :required]}],
                data: %{},
@@ -108,7 +108,7 @@ defmodule GoalTest do
 
     test "changeset/2" do
       assert %Ecto.Changeset{
-               action: :validate,
+               action: nil,
                changes: %{},
                errors: [],
                data: %{},
@@ -116,7 +116,7 @@ defmodule GoalTest do
              } = changeset(:show, %{id: 123})
 
       assert %Ecto.Changeset{
-               action: :validate,
+               action: nil,
                changes: %{},
                errors: [id: {"can't be blank", [validation: :required]}],
                data: %{},
