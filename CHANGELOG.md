@@ -13,7 +13,7 @@ Migration instructions:
 
 1. Replace `import Goal.Syntax` with `import Goal`
 2. Switch the arguments for `validate_params/2` from `validate_params(data, schema)` to `validate_params(schema, data)`
-3. Switch the arguments for `build_changeset/2` from `build_changeset(data, schema)` to `validate_params(schema, data)`
+3. Switch the arguments for `build_changeset/2` from `build_changeset(data, schema)` to `build_changeset(schema, data)`
 
 See the docs for more information on the new `defparams` macro.
 
