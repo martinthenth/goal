@@ -10,6 +10,8 @@ defmodule GoalTest do
 
   defparams :show do
     required(:id, :integer)
+    optional(:first_name, :string)
+    optional(:last_name, :string)
   end
 
   defparams :index do
@@ -50,7 +52,11 @@ defmodule GoalTest do
     end
 
     test "schema/1" do
-      assert schema(:show) == %{id: [type: :integer, required: true]}
+      assert schema(:show) == %{
+               id: [type: :integer, required: true],
+               first_name: [type: :string],
+               last_name: [type: :string]
+             }
 
       assert schema(:index) == %{
                id: [type: :integer, required: true],
@@ -124,7 +130,7 @@ defmodule GoalTest do
              } = changeset(:show, %{})
     end
 
-    test "validate/2" do
+    test "validate/3" do
       assert validate(:show, %{id: 123}) == {:ok, %{id: 123}}
 
       assert {:error,
@@ -135,10 +141,20 @@ defmodule GoalTest do
                 data: %{},
                 valid?: false
               }} = validate(:show, %{})
+
+      assert validate(:show, %{id: 123, firstName: "Jane", lastName: "Doe"},
+               recase_keys: [from: :camel_case]
+             ) ==
+               {:ok,
+                %{
+                  id: 123,
+                  first_name: "Jane",
+                  last_name: "Doe"
+                }}
     end
   end
 
-  describe "validate_params/2" do
+  describe "validate_params/3" do
     test "valid params" do
       schema = %{name: [type: :string, is: 4]}
       data = %{"name" => "Jane"}
@@ -152,6 +168,15 @@ defmodule GoalTest do
 
       assert {:error, changeset} = Goal.validate_params(schema, data)
       assert errors_on(changeset) == %{name: ["should be 4 character(s)"]}
+    end
+
+    test "recase params" do
+      schema = %{first_name: [type: :string], last_name: [type: :string]}
+      data = %{"firstName" => "Jane", "lastName" => "Doe"}
+      opts = [recase_keys: [from: :camel_case]]
+
+      assert Goal.validate_params(schema, data, opts) ==
+               {:ok, %{first_name: "Jane", last_name: "Doe"}}
     end
   end
 
@@ -1100,6 +1125,111 @@ defmodule GoalTest do
                  integer: 5
                }
              }
+    end
+  end
+
+  describe "recase_keys/3" do
+    test "from snake_case" do
+      schema = %{firstName: [type: :string], lastName: [type: :string]}
+      params = %{"first_name" => "Jane", "last_name" => "Doe"}
+      opts = [recase_keys: [from: :snake_case]]
+
+      assert Goal.recase_keys(schema, params, opts) ==
+               %{firstName: "Jane", lastName: "Doe"}
+    end
+
+    test "from camel_case" do
+      schema = %{first_name: [type: :string], last_name: [type: :string]}
+      params = %{"firstName" => "Jane", "lastName" => "Doe"}
+      opts = [recase_keys: [from: :camel_case]]
+
+      assert Goal.recase_keys(schema, params, opts) ==
+               %{first_name: "Jane", last_name: "Doe"}
+    end
+
+    test "from pascal_case" do
+      schema = %{first_name: [type: :string], last_name: [type: :string]}
+      params = %{"FirstName" => "Jane", "LastName" => "Doe"}
+      opts = [recase_keys: [from: :pascal_case]]
+
+      assert Goal.recase_keys(schema, params, opts) ==
+               %{first_name: "Jane", last_name: "Doe"}
+    end
+
+    test "from kebab_case" do
+      schema = %{first_name: [type: :string], last_name: [type: :string]}
+      params = %{"first-name" => "Jane", "last-name" => "Doe"}
+      opts = [recase_keys: [from: :kebab_case]]
+
+      assert Goal.recase_keys(schema, params, opts) ==
+               %{first_name: "Jane", last_name: "Doe"}
+    end
+
+    test "atom-based map" do
+      schema = %{first_name: [type: :string], last_name: [type: :string]}
+      params = %{firstName: "Jane", lastName: "Doe"}
+      opts = [recase_keys: [from: :camel_case]]
+
+      assert Goal.recase_keys(schema, params, opts) ==
+               %{first_name: "Jane", last_name: "Doe"}
+    end
+
+    test "nested map" do
+      schema = %{
+        first_name: [type: :string],
+        last_name: [type: :string],
+        preferences: [
+          type: :map,
+          properties: %{
+            food_choice: [type: :string],
+            drink_choice: [type: :string]
+          }
+        ]
+      }
+
+      params = %{
+        "firstName" => "Jane",
+        "lastName" => "Doe",
+        "preferences" => %{"foodChoice" => "pizza", "drinkChoice" => "cola"}
+      }
+
+      opts = [recase_keys: [from: :camel_case]]
+
+      assert Goal.recase_keys(schema, params, opts) ==
+               %{
+                 first_name: "Jane",
+                 last_name: "Doe",
+                 preferences: %{food_choice: "pizza", drink_choice: "cola"}
+               }
+    end
+
+    test "list of maps" do
+      schema = %{
+        first_name: [type: :string],
+        last_name: [type: :string],
+        preferences: [
+          type: {:array, :map},
+          properties: %{
+            food_choice: [type: :string],
+            drink_choice: [type: :string]
+          }
+        ]
+      }
+
+      params = %{
+        "firstName" => "Jane",
+        "lastName" => "Doe",
+        "preferences" => [%{"foodChoice" => "pizza", "drinkChoice" => "cola"}]
+      }
+
+      opts = [recase_keys: [from: :camel_case]]
+
+      assert Goal.recase_keys(schema, params, opts) ==
+               %{
+                 first_name: "Jane",
+                 last_name: "Doe",
+                 preferences: [%{food_choice: "pizza", drink_choice: "cola"}]
+               }
     end
   end
 end

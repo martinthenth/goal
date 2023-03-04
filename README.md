@@ -6,8 +6,8 @@ It can be used with JSON APIs, HTML controllers and LiveViews.
 Goal builds a changeset from a validation schema and controller or LiveView parameters, and
 returns the validated parameters or `Ecto.Changeset`, depending on the function you use.
 
-You can configure your own regexes for password, email, and URL format validations. This is 
-helpful in case of backward compatibility, where Goal's defaults might not match your production 
+You can configure your own regexes for password, email, and URL format validations. This is
+helpful in case of backward compatibility, where Goal's defaults might not match your production
 system's behavior.
 
 ## Installation
@@ -129,6 +129,8 @@ iex(2)> MySchema.changeset(:show, %{id: "f86b1460-c2dc-4b7f-a28b-e3f21f3ebe7b"})
 ```
 
 ## Features
+
+### Recase parameters
 
 ### Bring your own regex
 
