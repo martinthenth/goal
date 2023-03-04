@@ -249,6 +249,9 @@ defmodule Goal do
   @type params :: map()
 
   @typedoc false
+  @type opts :: [recase_keys: [from: :camel_case | :snake_case | :pascal_case | :kebab_case]]
+
+  @typedoc false
   @type error :: {String.t(), Keyword.t()}
 
   @typedoc false
@@ -264,13 +267,16 @@ defmodule Goal do
   @spec __using__(block()) :: any()
   defmacro __using__(_) do
     quote do
-      import Goal, only: [defparams: 1, defparams: 2, build_changeset: 2]
+      import Goal, only: [defparams: 1, defparams: 2, build_changeset: 2, recase_keys: 3]
 
       @typedoc false
       @type name :: atom() | binary()
 
       @typedoc false
       @type params :: map()
+
+      @typedoc false
+      @type opts :: [recase_keys: [from: :camel_case | :snake_case | :pascal_case | :kebab_case]]
 
       @typedoc false
       @type changeset :: Changeset.t()
@@ -296,10 +302,13 @@ defmodule Goal do
       Returns the validated parameters or an error changeset.
       Expects a schema to be defined with `defparams`.
       """
-      @spec validate(name(), params()) :: {:ok, params()} | {:error, changeset()}
-      def validate(name, params \\ %{}) do
-        name
-        |> changeset(params)
+      @spec validate(name(), params(), opts()) :: {:ok, params()} | {:error, changeset()}
+      def validate(name, params \\ %{}, opts \\ []) do
+        schema = schema(name)
+        params = recase_keys(schema, params, opts)
+
+        schema
+        |> build_changeset(params)
         |> Map.put(:action, :validate)
         |> validate()
       end
@@ -401,8 +410,10 @@ defmodule Goal do
       {:error, %Ecto.Changeset{valid?: false, errors: [email: {"has invalid format", ...}]}}
 
   """
-  @spec validate_params(schema(), params()) :: {:ok, params()} | {:error, changeset()}
-  def validate_params(schema, params) do
+  @spec validate_params(schema(), params(), opts()) :: {:ok, params()} | {:error, changeset()}
+  def validate_params(schema, params, opts \\ []) do
+    params = recase_keys(schema, params, opts)
+
     schema
     |> build_changeset(params)
     |> Map.put(:action, :validate)
@@ -433,6 +444,52 @@ defmodule Goal do
     |> validate_required_fields(schema)
     |> validate_basic_fields(schema)
     |> validate_nested_fields(types, schema)
+  end
+
+  @doc """
+  TODO: Add docs
+  """
+  def recase_keys(schema, params, opts) do
+    settings = Keyword.get(opts, :recase_keys) || Application.get_env(:goal, :recase_keys)
+
+    if settings do
+      from_case = Keyword.get(settings, :from)
+      is_atom_map = is_atom_map?(params)
+
+      recase_keys(schema, params, from_case, is_atom_map)
+    else
+      params
+    end
+  end
+
+  defp recase_keys(schema, params, from_case, is_atom_map) do
+    Enum.reduce(schema, %{}, fn {field, rules}, acc ->
+      recased_field =
+        field
+        |> Atom.to_string()
+        |> recase_string(from_case)
+
+      value =
+        if is_atom_map,
+          do: Map.get(params, String.to_atom(recased_field)),
+          else: Map.get(params, recased_field)
+
+      value =
+        cond do
+          is_map(value) ->
+            inner_schema = Keyword.get(rules, :properties)
+            recase_keys(inner_schema, value, from_case, is_atom_map)
+
+          is_list(value) ->
+            inner_schema = Keyword.get(rules, :properties)
+            Enum.map(value, &recase_keys(inner_schema, &1, from_case, is_atom_map))
+
+          true ->
+            value
+        end
+
+      Map.put(acc, field, value)
+    end)
   end
 
   @doc ~S"""
@@ -667,4 +724,13 @@ defmodule Goal do
       changeset
     end
   end
+
+  defp is_atom_map?(map) when is_map(map) do
+    Enum.reduce_while(map, false, fn {key, _value}, _acc -> {:halt, is_atom(key)} end)
+  end
+
+  defp recase_string(string, :camel_case), do: Recase.to_camel(string)
+  defp recase_string(string, :snake_case), do: Recase.to_snake(string)
+  defp recase_string(string, :kebab_case), do: Recase.to_kebab(string)
+  defp recase_string(string, :pascal_case), do: Recase.to_pascal(string)
 end
