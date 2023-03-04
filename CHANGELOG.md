@@ -1,6 +1,14 @@
+# 0.2.1
+
+No breaking changes.
+
+- Adds `recase_keys/3` to recase parameter keys from `camelCase`, `snake_case`, `PascalCase` or `kebab-case`
+- Adds optional `recase_keys` configuration to `validate/3` and `validate_params/3`
+- Adds optional `recase_keys` global configuration
+
 # 0.2.0
 
-Breaking changes! 
+Breaking changes!
 
 - Adds new macros `defparams/1` and `defparams/2`
 - Adds `changeset/1` and `changeset/2` to build changesets from schemas defined with `defparams/2`.
