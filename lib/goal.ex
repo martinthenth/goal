@@ -6,6 +6,10 @@ defmodule Goal do
   Goal builds a changeset from a validation schema and controller or LiveView parameters, and
   returns the validated parameters or an `Ecto.Changeset`, depending on the function you use.
 
+  If your frontend and backend use different parameter cases, you can recase parameter keys with
+  the `:recase_keys` option. `PascalCase`, `camelCase`, `kebab-case` and `snake_case` are
+  supported.
+
   You can configure your own regexes for password, email, and URL format validations. This is
   helpful in case of backward compatibility, where Goal's defaults might not match your production
   system's behavior.
@@ -29,7 +33,7 @@ defmodule Goal do
   ### Example with controllers
 
   With JSON and HTML-based APIs, Goal takes the `params` from a controller action, validates those
-  against a validation schema using `validate/2`, and returns an atom-based map or an error
+  against a validation schema using `validate/3`, and returns an atom-based map or an error
   changeset.
 
   ```elixir
@@ -129,6 +133,20 @@ defmodule Goal do
   ```
 
   ## Features
+
+  ### Recase keys
+
+  By default, Goal will look for the keys defined in `defparams`. But sometimes frontend applications
+  send parameters in a different format; for example, in `camelCase` but your backend uses
+  `snake_case`. For this scenario, Goal has the `:recase_keys` option:
+
+  ```elixir
+  config :goal,
+    recase_keys: [from: :camel_case]
+
+  iex(1)> MySchema.validate(:show, %{"firstName" => "Jane"})
+  {:ok, %{first_name: "Jane"}}
+  ```
 
   ### Bring your own regex
 
@@ -447,8 +465,16 @@ defmodule Goal do
   end
 
   @doc """
-  TODO: Add docs
+  Recases parameter keys that are present in the schema.
+
+  ## Examples
+
+      iex> recase_keys(%{first_name: [type: :string]}, %{"firstName" => "Jane"}, recase_keys: [from: :camel_case])
+      %{first_name: "Jane"}
+
+  Supported are `:camel_case`, `:pascal_case`, `:kebab_case` and `:snake_case`.
   """
+  @spec recase_keys(schema(), params(), opts()) :: params()
   def recase_keys(schema, params, opts) do
     settings = Keyword.get(opts, :recase_keys) || Application.get_env(:goal, :recase_keys)
 
@@ -460,36 +486,6 @@ defmodule Goal do
     else
       params
     end
-  end
-
-  defp recase_keys(schema, params, from_case, is_atom_map) do
-    Enum.reduce(schema, %{}, fn {field, rules}, acc ->
-      recased_field =
-        field
-        |> Atom.to_string()
-        |> recase_string(from_case)
-
-      value =
-        if is_atom_map,
-          do: Map.get(params, String.to_atom(recased_field)),
-          else: Map.get(params, recased_field)
-
-      value =
-        cond do
-          is_map(value) ->
-            inner_schema = Keyword.get(rules, :properties)
-            recase_keys(inner_schema, value, from_case, is_atom_map)
-
-          is_list(value) ->
-            inner_schema = Keyword.get(rules, :properties)
-            Enum.map(value, &recase_keys(inner_schema, &1, from_case, is_atom_map))
-
-          true ->
-            value
-        end
-
-      Map.put(acc, field, value)
-    end)
   end
 
   @doc ~S"""
@@ -727,6 +723,36 @@ defmodule Goal do
 
   defp is_atom_map?(map) when is_map(map) do
     Enum.reduce_while(map, false, fn {key, _value}, _acc -> {:halt, is_atom(key)} end)
+  end
+
+  defp recase_keys(schema, params, from_case, is_atom_map) do
+    Enum.reduce(schema, %{}, fn {field, rules}, acc ->
+      recased_field =
+        field
+        |> Atom.to_string()
+        |> recase_string(from_case)
+
+      value =
+        if is_atom_map,
+          do: Map.get(params, String.to_atom(recased_field)),
+          else: Map.get(params, recased_field)
+
+      value =
+        cond do
+          is_map(value) ->
+            inner_schema = Keyword.get(rules, :properties)
+            recase_keys(inner_schema, value, from_case, is_atom_map)
+
+          is_list(value) ->
+            inner_schema = Keyword.get(rules, :properties)
+            Enum.map(value, &recase_keys(inner_schema, &1, from_case, is_atom_map))
+
+          true ->
+            value
+        end
+
+      Map.put(acc, field, value)
+    end)
   end
 
   defp recase_string(string, :camel_case), do: Recase.to_camel(string)

@@ -6,6 +6,10 @@ It can be used with JSON APIs, HTML controllers and LiveViews.
 Goal builds a changeset from a validation schema and controller or LiveView parameters, and
 returns the validated parameters or `Ecto.Changeset`, depending on the function you use.
 
+If your frontend and backend use different parameter cases, you can recase parameter keys with
+the `:recase_keys` option. `PascalCase`, `camelCase`, `kebab-case` and `snake_case` are
+supported.
+
 You can configure your own regexes for password, email, and URL format validations. This is
 helpful in case of backward compatibility, where Goal's defaults might not match your production
 system's behavior.
@@ -29,7 +33,7 @@ Goal can be used with LiveViews and JSON and HTML controllers.
 ### Example with controllers
 
 With JSON and HTML-based APIs, Goal takes the `params` from a controller action, validates those
-against a validation schema using `validate/2`, and returns an atom-based map or an error
+against a validation schema using `validate/3`, and returns an atom-based map or an error
 changeset.
 
 ```elixir
@@ -130,7 +134,19 @@ iex(2)> MySchema.changeset(:show, %{id: "f86b1460-c2dc-4b7f-a28b-e3f21f3ebe7b"})
 
 ## Features
 
-### Recase parameters
+### Recase keys
+
+By default, Goal will look for the keys defined in `defparams`. But sometimes frontend applications
+send parameters in a different format; for example, in `camelCase` but your backend uses
+`snake_case`. For this scenario, Goal has the `:recase_keys` option:
+
+```elixir
+config :goal,
+  recase_keys: [from: :camel_case]
+
+iex(1)> MySchema.validate(:show, %{"firstName" => "Jane"})
+{:ok, %{first_name: "Jane"}}
+```
 
 ### Bring your own regex
 
