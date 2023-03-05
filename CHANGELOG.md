@@ -1,3 +1,9 @@
+# 0.2.2
+
+No breaking changes.
+
+- Fixes a bug in `recase_keys/3` when it receives a value that isn't a map or list of maps
+
 # 0.2.1
 
 No breaking changes.
