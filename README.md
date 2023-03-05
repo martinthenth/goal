@@ -276,7 +276,7 @@ The field types and available validations are:
 The default basic type is `:string`. You don't have to define this field if you are using the
 basic syntax.
 
-All field types, exluding `:map` and `{:array, :map}`, can use `:equals`, `:subset`,
+All field types, excluding `:map` and `{:array, :map}`, can use `:equals`, `:subset`,
 `:included`, `:excluded` validations.
 
 ## Credits

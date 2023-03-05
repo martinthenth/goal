@@ -1,3 +1,10 @@
+# 0.2.3
+
+No breaking changes.
+
+- Adds `recase_keys/2` for recasing outbound keys
+- Adds optional `:to_case` option to `:recase_keys` global configuration
+
 # 0.2.2
 
 No breaking changes.
@@ -8,9 +15,9 @@ No breaking changes.
 
 No breaking changes.
 
-- Adds `recase_keys/4` to recase parameter keys from `camelCase`, `snake_case`, `PascalCase` or `kebab-case`
-- Adds optional `recase_keys` configuration to `validate/3` and `validate_params/3`
-- Adds optional `recase_keys` global configuration
+- Adds `recase_keys/3` to recase parameter keys from `camelCase`, `snake_case`, `PascalCase` or `kebab-case`
+- Adds optional `:recase_keys` configuration to `validate/3` and `validate_params/3`
+- Adds optional `:recase_keys` global configuration
 
 # 0.2.0
 
