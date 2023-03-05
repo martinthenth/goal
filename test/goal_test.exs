@@ -1128,14 +1128,117 @@ defmodule GoalTest do
     end
   end
 
+  describe "recase_keys/2" do
+    test "to snake_case" do
+      params = %{firstName: "Jane", lastName: "Doe"}
+      opts = [recase_keys: [to: :snake_case]]
+
+      assert Goal.recase_keys(params, opts) == %{first_name: "Jane", last_name: "Doe"}
+    end
+
+    test "to camel_case" do
+      params = %{first_name: "Jane", last_name: "Doe"}
+      opts = [recase_keys: [to: :camel_case]]
+
+      assert Goal.recase_keys(params, opts) == %{firstName: "Jane", lastName: "Doe"}
+    end
+
+    test "to pascal_case" do
+      params = %{first_name: "Jane", last_name: "Doe"}
+      opts = [recase_keys: [to: :pascal_case]]
+
+      assert Goal.recase_keys(params, opts) == %{FirstName: "Jane", LastName: "Doe"}
+    end
+
+    test "to kebab_case" do
+      params = %{first_name: "Jane", last_name: "Doe"}
+      opts = [recase_keys: [to: :kebab_case]]
+
+      assert Goal.recase_keys(params, opts) == %{"first-name": "Jane", "last-name": "Doe"}
+    end
+
+    test "string-based map" do
+      params = %{"first_name" => "Jane", "last_name" => "Doe"}
+      opts = [recase_keys: [to: :camel_case]]
+
+      assert Goal.recase_keys(params, opts) == %{"firstName" => "Jane", "lastName" => "Doe"}
+    end
+
+    test "nested map" do
+      params = %{
+        first_name: "Jane",
+        last_name: "Doe",
+        preferences: %{food_choice: "pizza", drink_choice: "cola"}
+      }
+
+      opts = [recase_keys: [to: :camel_case]]
+
+      assert Goal.recase_keys(params, opts) == %{
+               firstName: "Jane",
+               lastName: "Doe",
+               preferences: %{foodChoice: "pizza", drinkChoice: "cola"}
+             }
+    end
+
+    test "list of maps" do
+      params = %{
+        first_name: "Jane",
+        last_name: "Doe",
+        preferences: [%{food_choice: "pizza", drink_choice: "cola"}]
+      }
+
+      opts = [recase_keys: [to: :camel_case]]
+
+      assert Goal.recase_keys(params, opts) == %{
+               firstName: "Jane",
+               lastName: "Doe",
+               preferences: [%{foodChoice: "pizza", drinkChoice: "cola"}]
+             }
+    end
+
+    test "list of string" do
+      params = %{
+        first_name: "Jane",
+        last_name: "Doe",
+        preferences: ["pizza", "cola"]
+      }
+
+      opts = [recase_keys: [to: :camel_case]]
+
+      assert Goal.recase_keys(params, opts) == %{
+               firstName: "Jane",
+               lastName: "Doe",
+               preferences: ["pizza", "cola"]
+             }
+    end
+
+    test "list of structs" do
+      struct = DateTime.utc_now()
+
+      params = %{
+        first_name: "Jane",
+        last_name: "Doe",
+        preferences: [struct, struct]
+      }
+
+      opts = [recase_keys: [to: :camel_case]]
+
+      assert Goal.recase_keys(params, opts) ==
+               %{
+                 firstName: "Jane",
+                 lastName: "Doe",
+                 preferences: [struct, struct]
+               }
+    end
+  end
+
   describe "recase_keys/3" do
     test "from snake_case" do
       schema = %{firstName: [type: :string], lastName: [type: :string]}
       params = %{"first_name" => "Jane", "last_name" => "Doe"}
       opts = [recase_keys: [from: :snake_case]]
 
-      assert Goal.recase_keys(schema, params, opts) ==
-               %{firstName: "Jane", lastName: "Doe"}
+      assert Goal.recase_keys(schema, params, opts) == %{firstName: "Jane", lastName: "Doe"}
     end
 
     test "from camel_case" do
@@ -1143,8 +1246,7 @@ defmodule GoalTest do
       params = %{"firstName" => "Jane", "lastName" => "Doe"}
       opts = [recase_keys: [from: :camel_case]]
 
-      assert Goal.recase_keys(schema, params, opts) ==
-               %{first_name: "Jane", last_name: "Doe"}
+      assert Goal.recase_keys(schema, params, opts) == %{first_name: "Jane", last_name: "Doe"}
     end
 
     test "from pascal_case" do
@@ -1152,8 +1254,7 @@ defmodule GoalTest do
       params = %{"FirstName" => "Jane", "LastName" => "Doe"}
       opts = [recase_keys: [from: :pascal_case]]
 
-      assert Goal.recase_keys(schema, params, opts) ==
-               %{first_name: "Jane", last_name: "Doe"}
+      assert Goal.recase_keys(schema, params, opts) == %{first_name: "Jane", last_name: "Doe"}
     end
 
     test "from kebab_case" do
@@ -1161,8 +1262,7 @@ defmodule GoalTest do
       params = %{"first-name" => "Jane", "last-name" => "Doe"}
       opts = [recase_keys: [from: :kebab_case]]
 
-      assert Goal.recase_keys(schema, params, opts) ==
-               %{first_name: "Jane", last_name: "Doe"}
+      assert Goal.recase_keys(schema, params, opts) == %{first_name: "Jane", last_name: "Doe"}
     end
 
     test "atom-based map" do
@@ -1170,8 +1270,7 @@ defmodule GoalTest do
       params = %{firstName: "Jane", lastName: "Doe"}
       opts = [recase_keys: [from: :camel_case]]
 
-      assert Goal.recase_keys(schema, params, opts) ==
-               %{first_name: "Jane", last_name: "Doe"}
+      assert Goal.recase_keys(schema, params, opts) == %{first_name: "Jane", last_name: "Doe"}
     end
 
     test "nested map" do
@@ -1278,6 +1377,14 @@ defmodule GoalTest do
                  last_name: "Doe",
                  preferences: [struct, struct]
                }
+    end
+
+    test "redundant fields" do
+      schema = %{firstName: [type: :string], lastName: [type: :string]}
+      params = %{"first_name" => "Jane", "last_name" => "Doe", "age" => 25}
+      opts = [recase_keys: [from: :snake_case]]
+
+      assert Goal.recase_keys(schema, params, opts) == %{firstName: "Jane", lastName: "Doe"}
     end
   end
 end

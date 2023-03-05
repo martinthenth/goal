@@ -267,7 +267,10 @@ defmodule Goal do
   @type params :: map()
 
   @typedoc false
-  @type opts :: [recase_keys: [from: :camel_case | :snake_case | :pascal_case | :kebab_case]]
+  @type cases :: :camel_case | :snake_case | :pascal_case | :kebab_case
+
+  @typedoc false
+  @type opts :: [recase_keys: [from: cases(), to: cases()]]
 
   @typedoc false
   @type error :: {String.t(), Keyword.t()}
@@ -465,7 +468,35 @@ defmodule Goal do
   end
 
   @doc """
+  Recases parameter keys.
+
+  Use only when you have full control of the data. For example, to render JSON responses.
+
+  ## Examples
+
+      iex> recase_keys(%{"firstName" => "Jane"}, recase_keys: [to: :camel_case])
+      %{firstName: "Jane"}
+
+  Supported are `:camel_case`, `:pascal_case`, `:kebab_case` and `:snake_case`.
+  """
+  @spec recase_keys(params(), opts()) :: params()
+  def recase_keys(params, opts) do
+    settings = Keyword.get(opts, :recase_keys) || Application.get_env(:goal, :recase_keys)
+
+    if settings do
+      to_case = Keyword.get(settings, :to)
+      is_atom_map = is_atom_map?(params)
+
+      recase_outbound_keys(params, to_case, is_atom_map)
+    else
+      params
+    end
+  end
+
+  @doc """
   Recases parameter keys that are present in the schema.
+
+  Use this instead of `recase_keys/2` for incoming parameters. For example, for user requests.
 
   ## Examples
 
@@ -482,7 +513,7 @@ defmodule Goal do
       from_case = Keyword.get(settings, :from)
       is_atom_map = is_atom_map?(params)
 
-      recase_keys(schema, params, from_case, is_atom_map)
+      recase_inbound_keys(schema, params, from_case, is_atom_map)
     else
       params
     end
@@ -725,14 +756,15 @@ defmodule Goal do
     Enum.reduce_while(map, false, fn {key, _value}, _acc -> {:halt, is_atom(key)} end)
   end
 
-  defp recase_keys(_schema, value, _from_case, _is_atom_map) when is_struct(value), do: value
+  defp recase_inbound_keys(_schema, value, _from_case, _is_atom_map) when is_struct(value),
+    do: value
 
-  defp recase_keys(schema, params, from_case, is_atom_map) when is_map(params) do
+  defp recase_inbound_keys(schema, params, from_case, is_atom_map) when is_map(params) do
     Enum.reduce(schema, %{}, fn {field, rules}, acc ->
       recased_field =
         field
         |> Atom.to_string()
-        |> recase_string(from_case)
+        |> recase_key(from_case)
 
       value =
         if is_atom_map,
@@ -743,11 +775,11 @@ defmodule Goal do
         cond do
           is_map(value) ->
             inner_schema = Keyword.get(rules, :properties)
-            recase_keys(inner_schema, value, from_case, is_atom_map)
+            recase_inbound_keys(inner_schema, value, from_case, is_atom_map)
 
           is_list(value) ->
             inner_schema = Keyword.get(rules, :properties)
-            recase_keys(inner_schema, value, from_case, is_atom_map)
+            recase_inbound_keys(inner_schema, value, from_case, is_atom_map)
 
           true ->
             value
@@ -757,14 +789,35 @@ defmodule Goal do
     end)
   end
 
-  defp recase_keys(schema, value, from_case, is_atom_map) when is_list(value) do
-    Enum.map(value, &recase_keys(schema, &1, from_case, is_atom_map))
+  defp recase_inbound_keys(schema, value, from_case, is_atom_map) when is_list(value) do
+    Enum.map(value, &recase_inbound_keys(schema, &1, from_case, is_atom_map))
   end
 
-  defp recase_keys(_schema, value, _from_case, _is_atom_map), do: value
+  defp recase_inbound_keys(_schema, value, _from_case, _is_atom_map), do: value
 
-  defp recase_string(string, :camel_case), do: Recase.to_camel(string)
-  defp recase_string(string, :snake_case), do: Recase.to_snake(string)
-  defp recase_string(string, :kebab_case), do: Recase.to_kebab(string)
-  defp recase_string(string, :pascal_case), do: Recase.to_pascal(string)
+  defp recase_outbound_keys(struct, _to_case, _is_atom_map) when is_struct(struct), do: struct
+
+  defp recase_outbound_keys(params, to_case, is_atom_map) when is_map(params) do
+    Enum.reduce(params, %{}, fn {key, value}, acc ->
+      value =
+        cond do
+          is_map(value) -> recase_outbound_keys(value, to_case, is_atom_map)
+          is_list(value) -> Enum.map(value, &recase_outbound_keys(&1, to_case, is_atom_map))
+          true -> value
+        end
+
+      key = if is_atom(key), do: Atom.to_string(key), else: key
+      key = recase_key(key, to_case)
+      key = if is_atom_map, do: String.to_atom(key), else: key
+
+      Map.put(acc, key, value)
+    end)
+  end
+
+  defp recase_outbound_keys(value, _to_case, _is_atom_map), do: value
+
+  defp recase_key(string, :camel_case), do: Recase.to_camel(string)
+  defp recase_key(string, :snake_case), do: Recase.to_snake(string)
+  defp recase_key(string, :kebab_case), do: Recase.to_kebab(string)
+  defp recase_key(string, :pascal_case), do: Recase.to_pascal(string)
 end
