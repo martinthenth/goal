@@ -276,7 +276,7 @@ defmodule Goal do
   The default basic type is `:string`. You don't have to define this field if you are using the
   basic syntax.
 
-  All field types, exluding `:map` and `{:array, :map}`, can use `:equals`, `:subset`,
+  All field types, excluding `:map` and `{:array, :map}`, can use `:equals`, `:subset`,
   `:included`, `:excluded` validations.
 
   ## Credits
@@ -509,7 +509,7 @@ defmodule Goal do
 
   ## Examples
 
-      iex> recase_keys(%{"firstName" => "Jane"}, recase_keys: [to: :camel_case])
+      iex> recase_keys(%{"first_name" => "Jane"}, recase_keys: [to: :camel_case])
       %{firstName: "Jane"}
 
   Supported are `:camel_case`, `:pascal_case`, `:kebab_case` and `:snake_case`.
