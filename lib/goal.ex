@@ -134,34 +134,6 @@ defmodule Goal do
 
   ## Features
 
-  ### Recase keys
-
-  By default, Goal will look for the keys defined in `defparams`. But sometimes frontend applications
-  send parameters in a different format; for example, in `camelCase` but your backend uses
-  `snake_case`. For this scenario, Goal has the `:recase_keys` option:
-
-  ```elixir
-  config :goal,
-    recase_keys: [from: :camel_case]
-
-  iex(1)> MySchema.validate(:show, %{"firstName" => "Jane"})
-  {:ok, %{first_name: "Jane"}}
-  ```
-
-  ### Bring your own regex
-
-  Goal has sensible defaults for string format validation. If you'd like to use your own regex,
-  e.g. for validating email addresses or passwords, then you can add your own regex in the
-  configuration:
-
-  ```elixir
-  config :goal,
-    uuid_regex: ~r/^[[:alpha:]]+$/,
-    email_regex: ~r/^[[:alpha:]]+$/,
-    password_regex: ~r/^[[:alpha:]]+$/,
-    url_regex: ~r/^[[:alpha:]]+$/
-  ```
-
   ### Deeply nested maps
 
   Goal efficiently builds error changesets for nested maps, and has support for lists of nested
@@ -192,12 +164,72 @@ defmodule Goal do
   Use `Goal.traverse_errors/2` to build readable errors. Phoenix by default uses
   `Ecto.Changeset.traverse_errors/2`, which works for embedded Ecto schemas but not for the plain
   nested maps used by Goal. Goal's `traverse_errors/2` is compatible with (embedded)
-  `Ecto.Schema`s, so you don't have to make any changes to your existing logic.
+  `Ecto.Schema`, so you don't have to make any changes to your existing logic.
 
   ```elixir
   def translate_errors(changeset) do
     Goal.traverse_errors(changeset, &translate_error/1)
   end
+  ```
+
+  ### Recasing inbound keys
+
+  By default, Goal will look for the keys defined in `defparams`. But sometimes frontend applications
+  send parameters in a different format. For example, in `camelCase` but your backend uses
+  `snake_case`. For this scenario, Goal has the `:recase_keys` option:
+
+  ```elixir
+  config :goal,
+    recase_keys: [from: :camel_case]
+
+  iex(1)> MySchema.validate(:show, %{"firstName" => "Jane"})
+  {:ok, %{first_name: "Jane"}}
+  ```
+
+  ### Recasing outbound keys
+
+  Use `recase_keys/2` to recase outbound keys. For example, in your views:
+
+  ```elixir
+  config :goal,
+    recase_keys: [to: :camel_case]
+
+  defmodule MyAppWeb.UserJSON do
+    import Goal
+
+    def show(%{user: user}) do
+      %{data: %{first_name: user.first_name}}
+      |> recase_keys()
+    end
+
+    def error(%{changeset: changeset}) do
+      errors =
+        changeset
+        |> Goal.Changeset.traverse_errors(&translate_error/1)
+        |> recase_keys()
+
+      %{errors: errors}
+    end
+  end
+
+  iex(1)> UserJSON.show(%{user: %{first_name: "Jane"}})
+  %{data: %{firstName: "Jane"}}
+  iex(2)> UserJSON.error(%Ecto.Changeset{errors: [first_name: {"can't be blank", [validation: :required]}]})
+  %{errors: %{firstName: ["can't be blank"]}}
+  ```
+
+  ### Bring your own regex
+
+  Goal has sensible defaults for string format validation. If you'd like to use your own regex,
+  e.g. for validating email addresses or passwords, then you can add your own regex in the
+  configuration:
+
+  ```elixir
+  config :goal,
+    uuid_regex: ~r/^[[:alpha:]]+$/,
+    email_regex: ~r/^[[:alpha:]]+$/,
+    password_regex: ~r/^[[:alpha:]]+$/,
+    url_regex: ~r/^[[:alpha:]]+$/
   ```
 
   ### Available validations
@@ -297,7 +329,10 @@ defmodule Goal do
       @type params :: map()
 
       @typedoc false
-      @type opts :: [recase_keys: [from: :camel_case | :snake_case | :pascal_case | :kebab_case]]
+      @type cases :: :camel_case | :snake_case | :pascal_case | :kebab_case
+
+      @typedoc false
+      @type opts :: [recase_keys: [from: cases()]]
 
       @typedoc false
       @type changeset :: Changeset.t()
