@@ -1254,5 +1254,30 @@ defmodule GoalTest do
                  preferences: ["pizza", "cola"]
                }
     end
+
+    test "list of structs" do
+      schema = %{
+        first_name: [type: :string],
+        last_name: [type: :string],
+        preferences: [type: {:array, DateTime}]
+      }
+
+      struct = DateTime.utc_now()
+
+      params = %{
+        "firstName" => "Jane",
+        "lastName" => "Doe",
+        "preferences" => [struct, struct]
+      }
+
+      opts = [recase_keys: [from: :camel_case]]
+
+      assert Goal.recase_keys(schema, params, opts) ==
+               %{
+                 first_name: "Jane",
+                 last_name: "Doe",
+                 preferences: [struct, struct]
+               }
+    end
   end
 end

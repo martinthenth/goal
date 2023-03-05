@@ -725,6 +725,8 @@ defmodule Goal do
     Enum.reduce_while(map, false, fn {key, _value}, _acc -> {:halt, is_atom(key)} end)
   end
 
+  defp recase_keys(_schema, value, _from_case, _is_atom_map) when is_struct(value), do: value
+
   defp recase_keys(schema, params, from_case, is_atom_map) when is_map(params) do
     Enum.reduce(schema, %{}, fn {field, rules}, acc ->
       recased_field =
