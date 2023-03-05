@@ -1231,5 +1231,28 @@ defmodule GoalTest do
                  preferences: [%{food_choice: "pizza", drink_choice: "cola"}]
                }
     end
+
+    test "list of strings" do
+      schema = %{
+        first_name: [type: :string],
+        last_name: [type: :string],
+        preferences: [type: {:array, :string}]
+      }
+
+      params = %{
+        "firstName" => "Jane",
+        "lastName" => "Doe",
+        "preferences" => ["pizza", "cola"]
+      }
+
+      opts = [recase_keys: [from: :camel_case]]
+
+      assert Goal.recase_keys(schema, params, opts) ==
+               %{
+                 first_name: "Jane",
+                 last_name: "Doe",
+                 preferences: ["pizza", "cola"]
+               }
+    end
   end
 end
