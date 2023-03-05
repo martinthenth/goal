@@ -515,7 +515,7 @@ defmodule Goal do
   Supported are `:camel_case`, `:pascal_case`, `:kebab_case` and `:snake_case`.
   """
   @spec recase_keys(params(), opts()) :: params()
-  def recase_keys(params, opts) do
+  def recase_keys(params, opts \\ []) do
     settings = Keyword.get(opts, :recase_keys) || Application.get_env(:goal, :recase_keys)
 
     if settings do
