@@ -834,12 +834,7 @@ defmodule Goal do
 
   defp recase_outbound_keys(params, to_case, is_atom_map) when is_map(params) do
     Enum.reduce(params, %{}, fn {key, value}, acc ->
-      value =
-        cond do
-          is_map(value) -> recase_outbound_keys(value, to_case, is_atom_map)
-          is_list(value) -> Enum.map(value, &recase_outbound_keys(&1, to_case, is_atom_map))
-          true -> value
-        end
+      value = recase_outbound_keys(value, to_case, is_atom_map)
 
       key = if is_atom(key), do: Atom.to_string(key), else: key
       key = recase_key(key, to_case)
@@ -847,6 +842,10 @@ defmodule Goal do
 
       Map.put(acc, key, value)
     end)
+  end
+
+  defp recase_outbound_keys(value, to_case, is_atom_map) when is_list(value) do
+    Enum.map(value, &recase_outbound_keys(&1, to_case, is_atom_map))
   end
 
   defp recase_outbound_keys(value, _to_case, _is_atom_map), do: value
