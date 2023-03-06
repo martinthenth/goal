@@ -10,6 +10,7 @@ defmodule GoalTest do
 
   defparams :show do
     required(:id, :integer)
+    optional(:user_id, :integer)
     optional(:first_name, :string)
     optional(:last_name, :string)
   end
@@ -54,6 +55,7 @@ defmodule GoalTest do
     test "schema/1" do
       assert schema(:show) == %{
                id: [type: :integer, required: true],
+               user_id: [type: :integer],
                first_name: [type: :string],
                last_name: [type: :string]
              }
@@ -144,13 +146,10 @@ defmodule GoalTest do
 
       assert validate(:show, %{id: 123, firstName: "Jane", lastName: "Doe"},
                recase_keys: [from: :camel_case]
-             ) ==
-               {:ok,
-                %{
-                  id: 123,
-                  first_name: "Jane",
-                  last_name: "Doe"
-                }}
+             ) == {:ok, %{id: 123, first_name: "Jane", last_name: "Doe"}}
+
+      assert validate(:show, %{id: 123, user_id: 123}, recase_keys: [from: :camel_case]) ==
+               {:ok, %{id: 123, user_id: 123}}
     end
   end
 
@@ -177,6 +176,15 @@ defmodule GoalTest do
 
       assert Goal.validate_params(schema, data, opts) ==
                {:ok, %{first_name: "Jane", last_name: "Doe"}}
+    end
+
+    test "recase params falls back to defined keys" do
+      schema = %{user_id: [type: :integer], first_name: [type: :string]}
+      data = %{"user_id" => 123, "firstName" => "Jane"}
+      opts = [recase_keys: [from: :camel_case]]
+
+      assert Goal.validate_params(schema, data, opts) ==
+               {:ok, %{user_id: 123, first_name: "Jane"}}
     end
   end
 
