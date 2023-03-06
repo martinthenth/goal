@@ -4,6 +4,7 @@ No breaking changes.
 
 - Adds `recase_keys/2` for recasing outbound keys
 - Adds optional `:to_case` option to `:recase_keys` global configuration
+- Adds fallback to non-recased parameters when recasing inbound parameters
 
 # 0.2.2
 

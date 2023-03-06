@@ -801,10 +801,10 @@ defmodule Goal do
         |> Atom.to_string()
         |> recase_key(from_case)
 
-      value =
-        if is_atom_map,
-          do: Map.get(params, String.to_atom(recased_field)),
-          else: Map.get(params, recased_field)
+      recased_field = if is_atom_map, do: String.to_atom(recased_field), else: recased_field
+      fallback_field = if is_atom_map, do: field, else: Atom.to_string(field)
+
+      value = Map.get(params, recased_field) || Map.get(params, fallback_field)
 
       value =
         cond do
