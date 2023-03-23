@@ -186,6 +186,22 @@ defmodule GoalTest do
       assert Goal.validate_params(schema, data, opts) ==
                {:ok, %{user_id: 123, first_name: "Jane"}}
     end
+
+    test "includes empty values when they were given" do
+      schema = %{timestamp: [type: :utc_datetime]}
+      params = %{"timestamp" => nil}
+      opts = [recase_keys: [from: :camel_case]]
+
+      assert Goal.validate_params(schema, params, opts) == {:ok, %{timestamp: nil}}
+    end
+
+    test "excludes empty values when they were not given" do
+      schema = %{name: [type: :string]}
+      params = %{}
+      opts = [recase_keys: [from: :camel_case]]
+
+      assert Goal.validate_params(schema, params, opts) == {:ok, %{}}
+    end
   end
 
   describe "build_changeset/2" do
@@ -1133,6 +1149,24 @@ defmodule GoalTest do
                  integer: 5
                }
              }
+    end
+
+    test "includes empty values when they were given" do
+      schema = %{timestamp: [type: :utc_datetime]}
+      params = %{"timestamp" => nil}
+
+      changeset = Goal.build_changeset(schema, params)
+
+      assert changes_on(changeset) == %{timestamp: nil}
+    end
+
+    test "excludes empty values when they were not given" do
+      schema = %{name: [type: :string]}
+      params = %{}
+
+      changeset = Goal.build_changeset(schema, params)
+
+      assert changes_on(changeset) == %{}
     end
   end
 

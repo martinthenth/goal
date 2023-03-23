@@ -1,3 +1,9 @@
+# 0.2.4
+
+No breaking changes.
+
+- Fixes a bug with `recase_keys: [from: :camel_case]` where empty values were ignored
+
 # 0.2.3
 
 No breaking changes.

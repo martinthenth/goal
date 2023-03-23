@@ -496,7 +496,7 @@ defmodule Goal do
     types = get_types(schema)
 
     {%{}, types}
-    |> Changeset.cast(params, Map.keys(types))
+    |> Changeset.cast(params, Map.keys(types), force_changes: true)
     |> validate_required_fields(schema)
     |> validate_basic_fields(schema)
     |> validate_nested_fields(types, schema)
@@ -804,23 +804,16 @@ defmodule Goal do
       recased_field = if is_atom_map, do: String.to_atom(recased_field), else: recased_field
       fallback_field = if is_atom_map, do: field, else: Atom.to_string(field)
 
-      value = Map.get(params, recased_field) || Map.get(params, fallback_field)
+      cond do
+        Map.has_key?(params, recased_field) ->
+          Map.put(acc, field, get_value(rules, params, recased_field, from_case, is_atom_map))
 
-      value =
-        cond do
-          is_map(value) ->
-            inner_schema = Keyword.get(rules, :properties)
-            recase_inbound_keys(inner_schema, value, from_case, is_atom_map)
+        Map.has_key?(params, fallback_field) ->
+          Map.put(acc, field, get_value(rules, params, fallback_field, from_case, is_atom_map))
 
-          is_list(value) ->
-            inner_schema = Keyword.get(rules, :properties)
-            recase_inbound_keys(inner_schema, value, from_case, is_atom_map)
-
-          true ->
-            value
-        end
-
-      Map.put(acc, field, value)
+        true ->
+          acc
+      end
     end)
   end
 
@@ -829,6 +822,25 @@ defmodule Goal do
   end
 
   defp recase_inbound_keys(_schema, value, _from_case, _is_atom_map), do: value
+
+  defp get_value(rules, params, field, from_case, is_atom_map) do
+    value = Map.get(params, field)
+
+    cond do
+      is_map(value) ->
+        rules
+        |> Keyword.get(:properties)
+        |> recase_inbound_keys(value, from_case, is_atom_map)
+
+      is_list(value) ->
+        rules
+        |> Keyword.get(:properties)
+        |> recase_inbound_keys(value, from_case, is_atom_map)
+
+      true ->
+        value
+    end
+  end
 
   defp recase_outbound_keys(struct, _to_case, _is_atom_map) when is_struct(struct), do: struct
 
