@@ -766,18 +766,7 @@ defmodule Goal do
     schema = Keyword.get(rules, :properties)
 
     if schema do
-      {valid?, changesets} =
-        Enum.reduce(params, {true, []}, fn params, {boolean, list} ->
-          schema
-          |> build_changeset(params)
-          |> case do
-            %Changeset{valid?: true, changes: inner_changes} ->
-              {boolean, [inner_changes | list]}
-
-            %Changeset{valid?: false} = inner_changeset ->
-              {false, [inner_changeset | list]}
-          end
-        end)
+      {valid?, changesets} = reduce_and_validate_array_fields(schema, params)
 
       changeset
       |> put_in([Access.key(:changes), Access.key(field)], Enum.reverse(changesets))
@@ -785,6 +774,20 @@ defmodule Goal do
     else
       changeset
     end
+  end
+
+  defp reduce_and_validate_array_fields(schema, params) do
+    Enum.reduce(params, {true, []}, fn params, {boolean, list} ->
+      schema
+      |> build_changeset(params)
+      |> case do
+        %Changeset{valid?: true, changes: inner_changes} ->
+          {boolean, [inner_changes | list]}
+
+        %Changeset{valid?: false} = inner_changeset ->
+          {false, [inner_changeset | list]}
+      end
+    end)
   end
 
   defp is_atom_map?(map) when is_map(map) do
@@ -826,19 +829,12 @@ defmodule Goal do
   defp get_value(rules, params, field, from_case, is_atom_map) do
     value = Map.get(params, field)
 
-    cond do
-      is_map(value) ->
-        rules
-        |> Keyword.get(:properties)
-        |> recase_inbound_keys(value, from_case, is_atom_map)
-
-      is_list(value) ->
-        rules
-        |> Keyword.get(:properties)
-        |> recase_inbound_keys(value, from_case, is_atom_map)
-
-      true ->
-        value
+    if is_map(value) || is_list(value) do
+      rules
+      |> Keyword.get(:properties)
+      |> recase_inbound_keys(value, from_case, is_atom_map)
+    else
+      value
     end
   end
 
