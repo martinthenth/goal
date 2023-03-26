@@ -131,8 +131,8 @@ defmodule MyApp.SomeController do
 
   alias MyAppWeb.MySchema
 
-  def create(conn, params) do
-    with {:ok, attrs} <- MySchema.validate(:create, params)) do
+  def show(conn, params) do
+    with {:ok, attrs} <- MySchema.validate(:show, params) do
       ...
     else
       {:error, changeset} -> {:error, changeset}
