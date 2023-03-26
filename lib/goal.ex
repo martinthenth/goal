@@ -112,7 +112,7 @@ defmodule Goal do
   end
   ```
 
-  ### Example with isolated schema
+  ### Example with isolated schemas
 
   Validation schemas can be defined in a separate namespace, for example `MyAppWeb.MySchema`:
 
@@ -126,10 +126,19 @@ defmodule Goal do
     end
   end
 
-  iex(1)> MySchema.validate(:show, %{"id" => "f86b1460-c2dc-4b7f-a28b-e3f21f3ebe7b"})
-  {:ok, %{id: "f86b1460-c2dc-4b7f-a28b-e3f21f3ebe7b"}}
-  iex(2)> MySchema.changeset(:show, %{id: "f86b1460-c2dc-4b7f-a28b-e3f21f3ebe7b"})
-  %Ecto.Changeset{valid?: true, changes: %{id: "f86b1460-c2dc-4b7f-a28b-e3f21f3ebe7b"}}
+  defmodule MyApp.SomeController do
+    use MyApp, :controller
+
+    alias MyAppWeb.MySchema
+
+    def show(conn, params) do
+      with {:ok, attrs} <- MySchema.validate(:show, params) do
+        ...
+      else
+        {:error, changeset} -> {:error, changeset}
+      end
+    end
+  end
   ```
 
   ## Features
@@ -198,17 +207,11 @@ defmodule Goal do
     import Goal
 
     def show(%{user: user}) do
-      %{data: %{first_name: user.first_name}}
-      |> recase_keys()
+      recase_keys(%{data: %{first_name: user.first_name}})
     end
 
     def error(%{changeset: changeset}) do
-      errors =
-        changeset
-        |> Goal.Changeset.traverse_errors(&translate_error/1)
-        |> recase_keys()
-
-      %{errors: errors}
+      recase_keys(%{errors: Goal.Changeset.traverse_errors(changeset, &translate_error/1)})
     end
   end
 
