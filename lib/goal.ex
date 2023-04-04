@@ -764,7 +764,7 @@ defmodule Goal do
   end
 
   defp validate_array_field(changes, field, schema, changeset) do
-    params = Map.get(changes, field)
+    params = Map.get(changes, field, [])
     rules = Map.get(schema, field)
     schema = Keyword.get(rules, :properties)
 
@@ -773,7 +773,14 @@ defmodule Goal do
 
       changeset
       |> put_in([Access.key(:changes), Access.key(field)], Enum.reverse(changesets))
-      |> Map.put(:valid?, valid?)
+      # If changeset is already false, we can't make it true
+      |> case do
+        %Changeset{valid?: true} = changeset ->
+          Map.put(changeset, :valid?, valid?)
+
+        %Changeset{valid?: false} = changeset ->
+          changeset
+      end
     else
       changeset
     end

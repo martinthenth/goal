@@ -1168,6 +1168,58 @@ defmodule GoalTest do
 
       assert changes_on(changeset) == %{}
     end
+
+    test "handles optionnal array map when they are not given in paramaters" do
+      schema = %{
+        name: [type: :string, required: true],
+        list_2: [
+          type: {:array, :map},
+          properties: %{
+            name: [type: :string, required: true, format: :string],
+            description: [type: :integer, required: true]
+          }
+        ]
+      }
+
+      params = %{
+        "name" => "hello"
+      }
+
+      changeset = Goal.build_changeset(schema, params)
+
+      assert changes_on(changeset) == %{list_2: [], name: "hello"}
+    end
+
+    test "handles array map changeset valid? when some nested map are invalid" do
+      schema = %{
+        name: [type: :string, required: true],
+        list_2: [
+          type: {:array, :map},
+          properties: %{
+            name: [type: :string, required: true, format: :string],
+            description: [type: :integer, required: true]
+          }
+        ]
+      }
+
+      params = %{
+        "name" => "hello",
+        "list_2" => [
+          %{
+            "name" => "hello",
+            "description" => "hello"
+          },
+          %{
+            "name" => "hello",
+            "description" => 1
+          }
+        ]
+      }
+
+      changeset = Goal.build_changeset(schema, params)
+
+      refute changeset.valid?
+    end
   end
 
   describe "recase_keys/2" do
