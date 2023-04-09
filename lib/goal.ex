@@ -831,8 +831,9 @@ defmodule Goal do
 
   defp get_value(rules, params, field, from_case, is_atom_map) do
     value = Map.get(params, field)
+    schema = Keyword.get(rules, :properties)
 
-    if is_map(value) || is_list(value) do
+    if (is_map(value) || is_list(value)) && schema do
       rules
       |> Keyword.get(:properties)
       |> recase_inbound_keys(value, from_case, is_atom_map)

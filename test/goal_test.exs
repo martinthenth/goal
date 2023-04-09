@@ -1315,6 +1315,14 @@ defmodule GoalTest do
       assert Goal.recase_keys(schema, params, opts) == %{first_name: "Jane", last_name: "Doe"}
     end
 
+    test "map" do
+      schema = %{description: [type: :map, required: true]}
+      params = %{"description" => %{}}
+      opts = [recase_keys: [from: :camel_case]]
+
+      assert Goal.recase_keys(schema, params, opts) == %{description: %{}}
+    end
+
     test "nested map" do
       schema = %{
         first_name: [type: :string],
