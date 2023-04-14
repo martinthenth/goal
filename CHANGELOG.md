@@ -1,3 +1,9 @@
+# 0.2.5
+
+No breaking changes.
+
+- Fixes a bug with recasing inbound keys when an empty map is given as parameter
+
 # 0.2.4
 
 No breaking changes.
