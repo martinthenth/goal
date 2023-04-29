@@ -1025,6 +1025,45 @@ defmodule GoalTest do
              }
     end
 
+    test "list of primitive types" do
+      data = %{
+        "strings" => [" hello", "world "]
+      }
+
+      schema = %{
+        strings: [
+          type: {:array, :string},
+          rules: [trim: true]
+        ]
+      }
+
+      changeset = Goal.build_changeset(schema, data)
+
+      assert changes_on(changeset) == %{strings: ["hello", "world"]}
+    end
+
+    test "list of incorrect primitive types" do
+      data = %{
+        "strings" => ["arrg", "arr", "a", " "]
+      }
+
+      schema = %{
+        strings: [
+          type: {:array, :string},
+          rules: [trim: true, min: 1, max: 3]
+        ]
+      }
+
+      changeset = Goal.build_changeset(schema, data)
+
+      assert errors_on(changeset) == %{
+               strings: [
+                 "item should be at least 1 character(s)",
+                 "item should be at most 3 character(s)"
+               ]
+             }
+    end
+
     test "missing schema rules" do
       data = %{
         "string_1" => "world",

@@ -735,9 +735,18 @@ defmodule Goal do
 
   defp validate_nested_fields(%Changeset{changes: changes} = changeset, types, schema) do
     Enum.reduce(types, changeset, fn
-      {field, :map}, acc -> validate_map_field(changes, field, schema, acc)
-      {field, {:array, :map}}, acc -> validate_array_field(changes, field, schema, acc)
-      {_field, _type}, acc -> acc
+      {field, :map}, acc ->
+        validate_map_field(changes, field, schema, acc)
+
+      {field, {:array, :map}}, acc ->
+        validate_array_field(changes, field, schema, acc)
+
+      {field, {:array, type}}, acc
+      when type in [:string, :integer, :decimal, :float, :boolean, :date, :time] ->
+        validate_new_array_field(changes, field, schema, type, acc)
+
+      {_field, _type}, acc ->
+        acc
     end)
   end
 
@@ -789,6 +798,57 @@ defmodule Goal do
 
         %Changeset{valid?: false} = inner_changeset ->
           {false, [inner_changeset | list]}
+      end
+    end)
+  end
+
+  defp validate_new_array_field(changes, field, schema, type, changeset) do
+    params = Map.get(changes, field)
+    rules = Map.get(schema, field)
+    # todo different name?
+    schema = Keyword.get(rules, :rules)
+
+    if schema do
+      case reduce_and_validate_new_array_field(schema, type, field, params) do
+        {:valid, changes} ->
+          changeset
+          |> put_in([Access.key(:changes), Access.key(field)], Enum.reverse(changes))
+          # todo does this change whole changeset?
+          |> Map.put(:valid?, true)
+
+        {:invalid, errors} ->
+          changeset
+          |> Map.update!(:errors, &(errors ++ &1))
+          |> Map.put(:valid?, false)
+      end
+    else
+      changeset
+    end
+  end
+
+  # THis is ALL OR NOTHING!
+  @placeholder :inner
+  defp reduce_and_validate_new_array_field(schema, type, field, params) do
+    schema = %{@placeholder => [{:type, type} | schema]}
+
+    Enum.reduce(params, {:valid, []}, fn params, {status, acc} ->
+      schema
+      |> build_changeset(%{@placeholder => params})
+      |> case do
+        %Changeset{valid?: true, changes: %{@placeholder => inner_changes}} ->
+          case status do
+            :valid -> {:valid, [inner_changes | acc]}
+            :invalid -> {:invalid, acc}
+          end
+
+        %Changeset{valid?: false, errors: errors} ->
+          errors =
+            Enum.map(errors, fn {@placeholder, {msg, opts}} -> {field, {"item " <> msg, opts}} end)
+
+          case status do
+            :valid -> {:invalid, errors}
+            :invalid -> {:invalid, errors ++ acc}
+          end
       end
     end)
   end
