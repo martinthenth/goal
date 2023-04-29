@@ -1064,6 +1064,27 @@ defmodule GoalTest do
              }
     end
 
+    test "list of incorrect primitive types does not create duplicate errors" do
+      data = %{
+        "strings" => ["abc", "def"]
+      }
+
+      schema = %{
+        strings: [
+          type: {:array, :string},
+          rules: [max: 2]
+        ]
+      }
+
+      changeset = Goal.build_changeset(schema, data)
+
+      assert errors_on(changeset) == %{
+               strings: [
+                 "item should be at most 2 character(s)"
+               ]
+             }
+    end
+
     test "missing schema rules" do
       data = %{
         "string_1" => "world",

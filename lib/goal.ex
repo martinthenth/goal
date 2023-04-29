@@ -851,6 +851,10 @@ defmodule Goal do
           end
       end
     end)
+    |> case do
+      {:invalid, errors} -> {:invalid, Enum.uniq(errors)}
+      other -> other
+    end
   end
 
   defp is_atom_map?(map) when is_map(map) do
