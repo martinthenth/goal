@@ -826,33 +826,35 @@ defmodule Goal do
     end
   end
 
-  # THis is ALL OR NOTHING!
   @placeholder :inner
   defp reduce_and_validate_new_array_field(schema, type, field, params) do
     schema = %{@placeholder => [{:type, type} | schema]}
 
     Enum.reduce(params, {:valid, []}, fn params, {status, acc} ->
-      schema
-      |> build_changeset(%{@placeholder => params})
-      |> case do
-        %Changeset{valid?: true, changes: %{@placeholder => inner_changes}} ->
-          case status do
-            :valid -> {:valid, [inner_changes | acc]}
-            :invalid -> {:invalid, acc}
-          end
+      changeset = build_changeset(schema, %{@placeholder => params})
 
-        %Changeset{valid?: false, errors: errors} ->
-          errors =
-            Enum.map(errors, fn {@placeholder, {msg, opts}} -> {field, {"item " <> msg, opts}} end)
+      case {status, changeset} do
+        {:valid, %Changeset{valid?: true, changes: %{@placeholder => inner_changes}}} ->
+          {:valid, [inner_changes | acc]}
 
-          case status do
-            :valid -> {:invalid, errors}
-            :invalid -> {:invalid, errors ++ acc}
-          end
+        {:valid, %Changeset{valid?: false, errors: errors}} ->
+          # The implementation is "all or nothing", so even if there where successful
+          # changes before, we reset them now since the whole changeset isn't valid.
+          {:invalid, errors}
+
+        {:invalid, %Changeset{valid?: false, errors: errors}} ->
+          {:invalid, errors ++ acc}
+
+        {:invalid, %Changeset{valid?: true}} ->
+          {:invalid, acc}
       end
     end)
     |> case do
-      {:invalid, errors} -> {:invalid, Enum.uniq(errors)}
+      {:invalid, errors} ->
+        errors = errors
+        |> Enum.uniq()
+        |> Enum.map(fn {@placeholder, {msg, opts}} -> {field, {"item " <> msg, opts}} end)
+        {:invalid, errors}
       other -> other
     end
   end
