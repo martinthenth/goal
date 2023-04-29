@@ -739,11 +739,11 @@ defmodule Goal do
         validate_map_field(changes, field, schema, acc)
 
       {field, {:array, :map}}, acc ->
-        validate_array_field(changes, field, schema, acc)
+        validate_array_map_field(changes, field, schema, acc)
 
       {field, {:array, type}}, acc
       when type in [:string, :integer, :decimal, :float, :boolean, :date, :time] ->
-        validate_new_array_field(changes, field, schema, type, acc)
+        validate_array_basic_field(changes, field, schema, type, acc)
 
       {_field, _type}, acc ->
         acc
@@ -772,13 +772,13 @@ defmodule Goal do
     end
   end
 
-  defp validate_array_field(changes, field, schema, changeset) do
+  defp validate_array_map_field(changes, field, schema, changeset) do
     params = Map.get(changes, field)
     rules = Map.get(schema, field)
     schema = Keyword.get(rules, :properties)
 
     if schema do
-      {valid?, changesets} = reduce_and_validate_array_fields(schema, params)
+      {valid?, changesets} = reduce_and_validate_array_map_fields(schema, params)
 
       changeset
       |> put_in([Access.key(:changes), Access.key(field)], Enum.reverse(changesets))
@@ -788,7 +788,7 @@ defmodule Goal do
     end
   end
 
-  defp reduce_and_validate_array_fields(schema, params) do
+  defp reduce_and_validate_array_map_fields(schema, params) do
     Enum.reduce(params, {true, []}, fn params, {boolean, list} ->
       schema
       |> build_changeset(params)
@@ -802,14 +802,14 @@ defmodule Goal do
     end)
   end
 
-  defp validate_new_array_field(changes, field, schema, type, changeset) do
+  defp validate_array_basic_field(changes, field, schema, type, changeset) do
     params = Map.get(changes, field)
     rules = Map.get(schema, field)
     # todo different name?
     schema = Keyword.get(rules, :rules)
 
     if schema do
-      case reduce_and_validate_new_array_field(schema, type, field, params) do
+      case reduce_and_validate_array_basic_fields(schema, type, field, params) do
         {:valid, changes} ->
           changeset
           |> put_in([Access.key(:changes), Access.key(field)], Enum.reverse(changes))
@@ -827,7 +827,7 @@ defmodule Goal do
   end
 
   @placeholder :inner
-  defp reduce_and_validate_new_array_field(schema, type, field, params) do
+  defp reduce_and_validate_array_basic_fields(schema, type, field, params) do
     schema = %{@placeholder => [{:type, type} | schema]}
 
     Enum.reduce(params, {:valid, []}, fn params, {status, acc} ->
@@ -851,11 +851,15 @@ defmodule Goal do
     end)
     |> case do
       {:invalid, errors} ->
-        errors = errors
-        |> Enum.uniq()
-        |> Enum.map(fn {@placeholder, {msg, opts}} -> {field, {"item " <> msg, opts}} end)
+        errors =
+          errors
+          |> Enum.uniq()
+          |> Enum.map(fn {@placeholder, {msg, opts}} -> {field, {"item " <> msg, opts}} end)
+
         {:invalid, errors}
-      other -> other
+
+      other ->
+        other
     end
   end
 
