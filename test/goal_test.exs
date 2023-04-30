@@ -1085,6 +1085,48 @@ defmodule GoalTest do
              }
     end
 
+    test "list, min: 2" do
+      schema = %{list: [type: {:array, :string}, min: 2]}
+
+      works = %{"list" => ["a", "b"]}
+      breaks = %{"list" => ["a"]}
+
+      changeset1 = Goal.build_changeset(schema, works)
+      changeset2 = Goal.build_changeset(schema, breaks)
+
+      assert changes_on(changeset1) == %{list: ["a", "b"]}
+      assert errors_on(changeset2) == %{list: ["should have at least 2 item(s)"]}
+    end
+
+    test "list, max: 2" do
+      schema = %{list: [type: {:array, :string}, max: 2]}
+
+      works = %{"list" => ["a", "b"]}
+      breaks = %{"list" => ["a", "b", "c"]}
+
+      changeset1 = Goal.build_changeset(schema, works)
+      changeset2 = Goal.build_changeset(schema, breaks)
+
+      assert changes_on(changeset1) == %{list: ["a", "b"]}
+      assert errors_on(changeset2) == %{list: ["should have at most 2 item(s)"]}
+    end
+
+    test "list, is: 2" do
+      schema = %{list: [type: {:array, :string}, is: 2]}
+
+      works = %{"list" => ["a", "b"]}
+      breaks1 = %{"list" => ["a", "b", "c"]}
+      breaks2 = %{"list" => ["a"]}
+
+      changeset1 = Goal.build_changeset(schema, works)
+      changeset2 = Goal.build_changeset(schema, breaks1)
+      changeset3 = Goal.build_changeset(schema, breaks2)
+
+      assert changes_on(changeset1) == %{list: ["a", "b"]}
+      assert errors_on(changeset2) == %{list: ["should have 2 item(s)"]}
+      assert errors_on(changeset3) == %{list: ["should have 2 item(s)"]}
+    end
+
     test "missing schema rules" do
       data = %{
         "string_1" => "world",
