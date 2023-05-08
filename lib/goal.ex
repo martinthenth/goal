@@ -782,7 +782,7 @@ defmodule Goal do
 
       changeset
       |> put_in([Access.key(:changes), Access.key(field)], Enum.reverse(changesets))
-      |> Map.put(:valid?, valid?)
+      |> Map.update!(:valid?, &Kernel.&&(&1, valid?))
     else
       changeset
     end
@@ -805,16 +805,14 @@ defmodule Goal do
   defp validate_array_basic_field(changes, field, schema, type, changeset) do
     params = Map.get(changes, field)
     rules = Map.get(schema, field)
-    # todo different name?
-    schema = Keyword.get(rules, :rules)
+    item_rules = Keyword.get(rules, :rules)
 
-    if schema do
-      case reduce_and_validate_array_basic_fields(schema, type, field, params) do
+    if item_rules do
+      case reduce_and_validate_array_basic_fields(item_rules, type, field, params) do
         {:valid, changes} ->
           changeset
           |> put_in([Access.key(:changes), Access.key(field)], Enum.reverse(changes))
-          # todo does this change whole changeset?
-          |> Map.put(:valid?, true)
+          |> Map.update!(:valid?, &Kernel.&&(&1, true))
 
         {:invalid, errors} ->
           changeset

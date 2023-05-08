@@ -1239,6 +1239,43 @@ defmodule GoalTest do
       refute changeset.valid?
     end
 
+    test "list item validations do not override the changeset validity" do
+      schema = %{
+        name: [type: :string, max: 3],
+        list: [type: {:array, :string}, min: 1, rules: [min: 1]]
+      }
+
+      data = %{"name" => "peetee", "list" => ["hello", "world"]}
+
+      changeset = Goal.build_changeset(schema, data)
+
+      assert errors_on(changeset) == %{name: ["should be at most 3 character(s)"]}
+      refute changeset.valid?
+    end
+
+    test "list with maps validation does not override changeset validity" do
+      schema = %{
+        name: [type: :string, max: 3],
+        list_2: [
+          type: {:array, :map},
+          properties: %{
+            name: [type: :string, required: true],
+          }
+        ]
+      }
+
+      params = %{
+        "name" => "peetee",
+        "list_2" => [
+          %{ "name" => "hello" }
+        ]
+      }
+
+      changeset = Goal.build_changeset(schema, params)
+
+      refute changeset.valid?
+    end
+
     test "missing schema rules" do
       data = %{
         "string_1" => "world",
