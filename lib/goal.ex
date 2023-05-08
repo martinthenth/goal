@@ -168,6 +168,25 @@ defmodule Goal do
   {:ok, %{nested_map: %{inner_map: %{map: %{id: 123, list: [1, 2, 3]}}}}}
   ```
 
+  ### Powerful array validations
+
+  I you need expressive validations for arrays types, look no further!
+
+  Arrays can be made optional/required or the number of items can be set via `min`, `max` and `is`.
+  Additionally, `rules` allows specifying any validations that are available for the inner type.
+  Of course, both can be combined:
+
+  ```elixir
+  use Goal
+
+  defparams do
+    required :my_list, {:array, :string}, max: 2, rules: [trim: true, min: 1]
+  end
+
+  iex(1)> Goal.validate_params(schema(), %{"my_list" => ["hello ", " world "]})
+  {:ok, %{my_list: ["hello", "world"]}}
+  ```
+
   ### Readable error messages
 
   Use `Goal.traverse_errors/2` to build readable errors. Phoenix by default uses
@@ -243,7 +262,7 @@ defmodule Goal do
   | ---------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------- |
   | `:uuid`                | `:equals`                   | string value                                                                                         |
   | `:string`              | `:equals`                   | string value                                                                                         |
-  |                        | `:is`                       | string length                                                                                        |
+  |                        | `:is`                       | exact string length                                                                                  |
   |                        | `:min`                      | minimum string length                                                                                |
   |                        | `:max`                      | maximum string length                                                                                |
   |                        | `:trim`                     | oolean to remove leading and trailing spaces                                                         |
@@ -273,7 +292,10 @@ defmodule Goal do
   | `:enum`                | `:values`                   | list of allowed values                                                                               |
   | `:map`                 | `:properties`               | use `:properties` to define the fields                                                               |
   | `{:array, :map}`       | `:properties`               | use `:properties` to define the fields                                                               |
-  | `{:array, inner_type}` |                             | `inner_type` can be any of the basic types                                                           |
+  | `{:array, inner_type}` | `:rules`                    | `inner_type` can be any basic type. `rules` supported all validations available for `inner_type`     |
+  |                        | `:min`                      | minimum array length                                                                                 |
+  |                        | `:max`                      | maximum array length                                                                                 |
+  |                        | `:is`                       | exact array length                                                                                   |
   | More basic types       |                             | See [Ecto.Schema](https://hexdocs.pm/ecto/Ecto.Schema.html#module-primitive-types) for the full list |
 
   The default basic type is `:string`. You don't have to define this field if you are using the
