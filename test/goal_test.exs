@@ -1058,6 +1058,7 @@ defmodule GoalTest do
       changeset = Goal.build_changeset(schema, data)
 
       refute changeset.valid?
+
       assert errors_on(changeset) == %{
                strings: [
                  "item should be at least 1 character(s)",
@@ -1081,6 +1082,7 @@ defmodule GoalTest do
       changeset = Goal.build_changeset(schema, data)
 
       refute changeset.valid?
+
       assert errors_on(changeset) == %{
                strings: [
                  "item should be at most 2 character(s)"
@@ -1231,11 +1233,15 @@ defmodule GoalTest do
       changeset = Goal.build_changeset(schema, data)
 
       assert errors_on(changeset) == %{
-        name: ["can't be blank"],
-        age: ["is invalid"],
-        hobbies: ["item should be at least 1 character(s)"],
-        picks: ["item must be greater than or equal to 14", "should have at most 4 item(s)"]
-      }
+               name: ["can't be blank"],
+               age: ["is invalid"],
+               hobbies: ["item should be at least 1 character(s)"],
+               picks: [
+                 "item must be greater than or equal to 14",
+                 "should have at most 4 item(s)"
+               ]
+             }
+
       refute changeset.valid?
     end
 
@@ -1259,7 +1265,7 @@ defmodule GoalTest do
         list_2: [
           type: {:array, :map},
           properties: %{
-            name: [type: :string, required: true],
+            name: [type: :string, required: true]
           }
         ]
       }
@@ -1267,7 +1273,7 @@ defmodule GoalTest do
       params = %{
         "name" => "peetee",
         "list_2" => [
-          %{ "name" => "hello" }
+          %{"name" => "hello"}
         ]
       }
 
