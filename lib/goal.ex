@@ -799,7 +799,7 @@ defmodule Goal do
     rules = Map.get(schema, field)
     schema = Keyword.get(rules, :properties)
 
-    if schema do
+    if schema && is_list(params) do
       {valid?, changesets} = reduce_and_validate_array_map_fields(schema, params)
 
       changeset
@@ -829,7 +829,7 @@ defmodule Goal do
     rules = Map.get(schema, field)
     item_rules = Keyword.get(rules, :rules)
 
-    if item_rules do
+    if item_rules && is_list(params) do
       case reduce_and_validate_array_basic_fields(item_rules, type, field, params) do
         {:valid, changes} ->
           changeset

@@ -928,6 +928,22 @@ defmodule GoalTest do
              }
     end
 
+    test "list of maps, invalid type given" do
+      schema = %{
+        list: [
+          type: {:array, :map},
+          properties: %{
+            string: [type: :string]
+          }
+        ]
+      }
+
+      cs = Goal.build_changeset(schema, %{"list" => "not a list"})
+
+      refute cs.valid?
+      assert errors_on(cs) == %{list: ["is invalid"]}
+    end
+
     test "list of invalid maps" do
       data = %{
         "list" => [
@@ -1243,6 +1259,30 @@ defmodule GoalTest do
              }
 
       refute changeset.valid?
+    end
+
+    test "list, missing items" do
+      schema = %{
+        list: [type: {:array, :string}, required: true, rules: [format: :uuid]]
+      }
+
+      cs = Goal.build_changeset(schema, %{})
+      refute cs.valid?
+      assert errors_on(cs) == %{
+        list: ["can't be blank"]
+      }
+    end
+
+    test "list, different type given" do
+      schema = %{
+        list: [type: {:array, :string}, rules: [format: :uuid]]
+      }
+
+      cs = Goal.build_changeset(schema, %{"list" => "not_a_list"})
+      refute cs.valid?
+      assert errors_on(cs) == %{
+        list: ["is invalid"]
+      }
     end
 
     test "list item validations do not override the changeset validity" do
