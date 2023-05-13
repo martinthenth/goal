@@ -1212,8 +1212,14 @@ defmodule GoalTest do
 
       assert changes_on(changeset1) == %{list: ["hello"]}
       assert changeset1.valid?
-      # todo can/should we only show parent (list) error?
-      assert errors_on(changeset2) == %{list: ["should have at most 1 item(s)"]}
+
+      assert errors_on(changeset2) == %{
+               list: [
+                 "item should be at least 3 character(s)",
+                 "should have at most 1 item(s)"
+               ]
+             }
+
       refute changeset2.valid?
     end
 
