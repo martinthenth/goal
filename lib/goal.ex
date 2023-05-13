@@ -859,10 +859,10 @@ defmodule Goal do
         {:valid, %Changeset{valid?: false, errors: errors}} ->
           # The implementation is "all or nothing", so even if there where successful
           # changes before, we reset them now since the whole changeset isn't valid.
-          {:invalid, errors}
+          {:invalid, MapSet.new(errors)}
 
         {:invalid, %Changeset{valid?: false, errors: errors}} ->
-          {:invalid, errors ++ acc}
+          {:invalid, MapSet.new(errors) |> MapSet.union(acc)}
 
         {:invalid, %Changeset{valid?: true}} ->
           {:invalid, acc}
@@ -871,11 +871,7 @@ defmodule Goal do
 
     case result do
       {:invalid, errors} ->
-        errors =
-          errors
-          |> Enum.uniq()
-          |> Enum.map(fn {:inner_schema, {msg, opts}} -> {field, {"item " <> msg, opts}} end)
-
+        errors = for {:inner_schema, {msg, opts}} <- errors, do: {field, {"item " <> msg, opts}}
         {:invalid, errors}
 
       {:valid, changeset} ->
