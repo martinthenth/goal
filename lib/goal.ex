@@ -849,25 +849,26 @@ defmodule Goal do
   defp reduce_and_validate_array_basic_fields(schema, type, field, params) do
     schema = %{:inner_schema => [{:type, type} | schema]}
 
-    result = Enum.reduce(params, {:valid, []}, fn params, {status, acc} ->
-      changeset = build_changeset(schema, %{:inner_schema => params})
+    result =
+      Enum.reduce(params, {:valid, []}, fn params, {status, acc} ->
+        changeset = build_changeset(schema, %{:inner_schema => params})
 
-      case {status, changeset} do
-        {:valid, %Changeset{valid?: true, changes: %{:inner_schema => inner_changes}}} ->
-          {:valid, [inner_changes | acc]}
+        case {status, changeset} do
+          {:valid, %Changeset{valid?: true, changes: %{:inner_schema => inner_changes}}} ->
+            {:valid, [inner_changes | acc]}
 
-        {:valid, %Changeset{valid?: false, errors: errors}} ->
-          # The implementation is "all or nothing", so even if there where successful
-          # changes before, we reset them now since the whole changeset isn't valid.
-          {:invalid, MapSet.new(errors)}
+          {:valid, %Changeset{valid?: false, errors: errors}} ->
+            # The implementation is "all or nothing", so even if there where successful
+            # changes before, we reset them now since the whole changeset isn't valid.
+            {:invalid, MapSet.new(errors)}
 
-        {:invalid, %Changeset{valid?: false, errors: errors}} ->
-          {:invalid, MapSet.new(errors) |> MapSet.union(acc)}
+          {:invalid, %Changeset{valid?: false, errors: errors}} ->
+            {:invalid, MapSet.new(errors) |> MapSet.union(acc)}
 
-        {:invalid, %Changeset{valid?: true}} ->
-          {:invalid, acc}
-      end
-    end)
+          {:invalid, %Changeset{valid?: true}} ->
+            {:invalid, acc}
+        end
+      end)
 
     case result do
       {:invalid, errors} ->
