@@ -938,10 +938,10 @@ defmodule GoalTest do
         ]
       }
 
-      cs = Goal.build_changeset(schema, %{"list" => "not a list"})
+      changeset = Goal.build_changeset(schema, %{"list" => "not a list"})
 
-      refute cs.valid?
-      assert errors_on(cs) == %{list: ["is invalid"]}
+      refute changeset.valid?
+      assert errors_on(changeset) == %{list: ["is invalid"]}
     end
 
     test "list of invalid maps" do
@@ -1059,7 +1059,7 @@ defmodule GoalTest do
       assert changes_on(changeset) == %{strings: ["hello", "world"]}
     end
 
-    test "list of incorrect primitive types" do
+    test "list of strings with incorrect values" do
       data = %{
         "strings" => ["arrg", "arr", "a", " "]
       }
@@ -1134,10 +1134,10 @@ defmodule GoalTest do
     test "optional list, min: 1" do
       schema = %{list: [type: {:array, :string}, min: 1]}
 
-      cs = Goal.build_changeset(schema, %{"list" => []})
+      changeset = Goal.build_changeset(schema, %{"list" => []})
 
-      refute cs.valid?
-      assert errors_on(cs) == %{list: ["should have at least 1 item(s)"]}
+      refute changeset.valid?
+      assert errors_on(changeset) == %{list: ["should have at least 1 item(s)"]}
     end
 
     test "list, min: 2" do
@@ -1266,11 +1266,12 @@ defmodule GoalTest do
         list: [type: {:array, :string}, required: true, rules: [format: :uuid]]
       }
 
-      cs = Goal.build_changeset(schema, %{})
-      refute cs.valid?
-      assert errors_on(cs) == %{
-        list: ["can't be blank"]
-      }
+      changeset = Goal.build_changeset(schema, %{})
+      refute changeset.valid?
+
+      assert errors_on(changeset) == %{
+               list: ["can't be blank"]
+             }
     end
 
     test "list, different type given" do
@@ -1278,11 +1279,12 @@ defmodule GoalTest do
         list: [type: {:array, :string}, rules: [format: :uuid]]
       }
 
-      cs = Goal.build_changeset(schema, %{"list" => "not_a_list"})
-      refute cs.valid?
-      assert errors_on(cs) == %{
-        list: ["is invalid"]
-      }
+      changeset = Goal.build_changeset(schema, %{"list" => "not_a_list"})
+      refute changeset.valid?
+
+      assert errors_on(changeset) == %{
+               list: ["is invalid"]
+             }
     end
 
     test "list item validations do not override the changeset validity" do
