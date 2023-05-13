@@ -172,7 +172,7 @@ iex(1)> Goal.validate_params(schema(), params)
 
 ### Powerful array validations
 
-I you need expressive validations for arrays types, look no further!
+If you need expressive validations for arrays types, look no further!
 
 Arrays can be made optional/required or the number of items can be set via `min`, `max` and `is`.
 Additionally, `rules` allows specifying any validations that are available for the inner type.
