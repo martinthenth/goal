@@ -846,15 +846,14 @@ defmodule Goal do
     end
   end
 
-  @placeholder :inner
   defp reduce_and_validate_array_basic_fields(schema, type, field, params) do
-    schema = %{@placeholder => [{:type, type} | schema]}
+    schema = %{:inner_schema => [{:type, type} | schema]}
 
-    Enum.reduce(params, {:valid, []}, fn params, {status, acc} ->
-      changeset = build_changeset(schema, %{@placeholder => params})
+    result = Enum.reduce(params, {:valid, []}, fn params, {status, acc} ->
+      changeset = build_changeset(schema, %{:inner_schema => params})
 
       case {status, changeset} do
-        {:valid, %Changeset{valid?: true, changes: %{@placeholder => inner_changes}}} ->
+        {:valid, %Changeset{valid?: true, changes: %{:inner_schema => inner_changes}}} ->
           {:valid, [inner_changes | acc]}
 
         {:valid, %Changeset{valid?: false, errors: errors}} ->
@@ -869,17 +868,18 @@ defmodule Goal do
           {:invalid, acc}
       end
     end)
-    |> case do
+
+    case result do
       {:invalid, errors} ->
         errors =
           errors
           |> Enum.uniq()
-          |> Enum.map(fn {@placeholder, {msg, opts}} -> {field, {"item " <> msg, opts}} end)
+          |> Enum.map(fn {:inner_schema, {msg, opts}} -> {field, {"item " <> msg, opts}} end)
 
         {:invalid, errors}
 
-      other ->
-        other
+      {:valid, changeset} ->
+        {:valid, changeset}
     end
   end
 
