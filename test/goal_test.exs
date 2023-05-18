@@ -1061,13 +1061,13 @@ defmodule GoalTest do
 
     test "list of strings with incorrect values" do
       data = %{
-        "strings" => ["arrg", "arr", "a", " "]
+        "strings" => ["arrg", "arr", "ab", "a"]
       }
 
       schema = %{
         strings: [
           type: {:array, :string},
-          rules: [trim: true, min: 1, max: 3]
+          rules: [trim: true, min: 2, max: 3]
         ]
       }
 
@@ -1077,7 +1077,7 @@ defmodule GoalTest do
 
       assert errors_on(changeset) == %{
                strings: [
-                 "item should be at least 1 character(s)",
+                 "item should be at least 2 character(s)",
                  "item should be at most 3 character(s)"
                ]
              }
@@ -1116,7 +1116,7 @@ defmodule GoalTest do
       }
 
       works = %{"list" => [" hello "]}
-      breaks1 = %{"list" => ["  "]}
+      breaks1 = %{"list" => [" i "]}
       breaks2 = %{"list" => []}
 
       changeset1 = Goal.build_changeset(schema, works)
@@ -1242,13 +1242,13 @@ defmodule GoalTest do
       schema = %{
         name: [type: :string, min: 1, required: true],
         age: [type: :integer],
-        hobbies: [type: {:array, :string}, required: true, min: 1, rules: [trim: true, min: 1]],
+        hobbies: [type: {:array, :string}, required: true, min: 1, rules: [trim: true, min: 2]],
         picks: [type: {:array, :integer}, max: 4, rules: [min: 14, max: 48]]
       }
 
       data = %{
         "age" => "pete",
-        "hobbies" => [" "],
+        "hobbies" => ["i "],
         "picks" => [11, 44, 19, 22, 31]
       }
 
@@ -1257,7 +1257,7 @@ defmodule GoalTest do
       assert errors_on(changeset) == %{
                name: ["can't be blank"],
                age: ["is invalid"],
-               hobbies: ["item should be at least 1 character(s)"],
+               hobbies: ["item should be at least 2 character(s)"],
                picks: [
                  "item must be greater than or equal to 14",
                  "should have at most 4 item(s)"
