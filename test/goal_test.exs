@@ -928,6 +928,22 @@ defmodule GoalTest do
              }
     end
 
+    test "list of maps, invalid type given" do
+      schema = %{
+        list: [
+          type: {:array, :map},
+          properties: %{
+            string: [type: :string]
+          }
+        ]
+      }
+
+      changeset = Goal.build_changeset(schema, %{"list" => "not a list"})
+
+      refute changeset.valid?
+      assert errors_on(changeset) == %{list: ["is invalid"]}
+    end
+
     test "list of invalid maps" do
       data = %{
         "list" => [
@@ -1023,6 +1039,295 @@ defmodule GoalTest do
                  }
                ]
              }
+    end
+
+    test "list of primitive types" do
+      data = %{
+        "strings" => [" hello", "world "]
+      }
+
+      schema = %{
+        strings: [
+          type: {:array, :string},
+          rules: [trim: true]
+        ]
+      }
+
+      changeset = Goal.build_changeset(schema, data)
+
+      assert changeset.valid?
+      assert changes_on(changeset) == %{strings: ["hello", "world"]}
+    end
+
+    test "list of strings with incorrect values" do
+      data = %{
+        "strings" => ["arrg", "arr", "ab", "a"]
+      }
+
+      schema = %{
+        strings: [
+          type: {:array, :string},
+          rules: [trim: true, min: 2, max: 3]
+        ]
+      }
+
+      changeset = Goal.build_changeset(schema, data)
+
+      refute changeset.valid?
+
+      assert errors_on(changeset) == %{
+               strings: [
+                 "item should be at least 2 character(s)",
+                 "item should be at most 3 character(s)"
+               ]
+             }
+    end
+
+    test "list of incorrect primitive types does not create duplicate errors" do
+      data = %{
+        "strings" => ["abc", "def"]
+      }
+
+      schema = %{
+        strings: [
+          type: {:array, :string},
+          rules: [max: 2]
+        ]
+      }
+
+      changeset = Goal.build_changeset(schema, data)
+
+      refute changeset.valid?
+
+      assert errors_on(changeset) == %{
+               strings: [
+                 "item should be at most 2 character(s)"
+               ]
+             }
+    end
+
+    test "list of primitive type :trim, min: 2 and list min: 1" do
+      schema = %{
+        list: [
+          type: {:array, :string},
+          rules: [trim: true, min: 2],
+          min: 1
+        ]
+      }
+
+      works = %{"list" => [" hello "]}
+      breaks1 = %{"list" => [" i "]}
+      breaks2 = %{"list" => []}
+
+      changeset1 = Goal.build_changeset(schema, works)
+      changeset2 = Goal.build_changeset(schema, breaks1)
+      changeset3 = Goal.build_changeset(schema, breaks2)
+
+      assert changes_on(changeset1) == %{list: ["hello"]}
+      assert changeset1.valid?
+      assert errors_on(changeset2) == %{list: ["item should be at least 2 character(s)"]}
+      refute changeset2.valid?
+      assert errors_on(changeset3) == %{list: ["should have at least 1 item(s)"]}
+      refute changeset3.valid?
+    end
+
+    test "optional list, min: 1" do
+      schema = %{list: [type: {:array, :string}, min: 1]}
+
+      changeset = Goal.build_changeset(schema, %{"list" => []})
+
+      refute changeset.valid?
+      assert errors_on(changeset) == %{list: ["should have at least 1 item(s)"]}
+    end
+
+    test "list, min: 2" do
+      schema = %{list: [type: {:array, :string}, min: 2]}
+
+      works = %{"list" => ["a", "b"]}
+      breaks = %{"list" => ["a"]}
+      optional = %{}
+
+      changeset1 = Goal.build_changeset(schema, works)
+      changeset2 = Goal.build_changeset(schema, breaks)
+      changeset3 = Goal.build_changeset(schema, optional)
+
+      assert changes_on(changeset1) == %{list: ["a", "b"]}
+      assert changeset1.valid?
+      assert errors_on(changeset2) == %{list: ["should have at least 2 item(s)"]}
+      refute changeset2.valid?
+      assert errors_on(changeset3) == %{}
+      assert changeset3.valid?
+    end
+
+    test "list, max: 2" do
+      schema = %{list: [type: {:array, :string}, max: 2]}
+
+      works = %{"list" => ["a", "b"]}
+      breaks = %{"list" => ["a", "b", "c"]}
+      optional = %{}
+
+      changeset1 = Goal.build_changeset(schema, works)
+      changeset2 = Goal.build_changeset(schema, breaks)
+      changeset3 = Goal.build_changeset(schema, optional)
+
+      assert changes_on(changeset1) == %{list: ["a", "b"]}
+      assert changeset1.valid?
+      assert errors_on(changeset2) == %{list: ["should have at most 2 item(s)"]}
+      refute changeset2.valid?
+      assert errors_on(changeset3) == %{}
+      assert changeset3.valid?
+    end
+
+    test "list, is: 2" do
+      schema = %{list: [type: {:array, :string}, is: 2]}
+
+      works = %{"list" => ["a", "b"]}
+      breaks1 = %{"list" => ["a", "b", "c"]}
+      breaks2 = %{"list" => ["a"]}
+      optional = %{}
+
+      changeset1 = Goal.build_changeset(schema, works)
+      changeset2 = Goal.build_changeset(schema, breaks1)
+      changeset3 = Goal.build_changeset(schema, breaks2)
+      changeset4 = Goal.build_changeset(schema, optional)
+
+      assert changes_on(changeset1) == %{list: ["a", "b"]}
+      assert changeset1.valid?
+      assert errors_on(changeset2) == %{list: ["should have 2 item(s)"]}
+      refute changeset2.valid?
+      assert errors_on(changeset3) == %{list: ["should have 2 item(s)"]}
+      refute changeset3.valid?
+      assert errors_on(changeset4) == %{}
+      assert changeset4.valid?
+    end
+
+    test "list and item both invalid" do
+      schema = %{list: [type: {:array, :string}, max: 1, rules: [min: 3]]}
+
+      works = %{"list" => ["hello"]}
+      breaks = %{"list" => ["as", "we"]}
+
+      changeset1 = Goal.build_changeset(schema, works)
+      changeset2 = Goal.build_changeset(schema, breaks)
+
+      assert changes_on(changeset1) == %{list: ["hello"]}
+      assert changeset1.valid?
+
+      assert errors_on(changeset2) == %{
+               list: [
+                 "item should be at least 3 character(s)",
+                 "should have at most 1 item(s)"
+               ]
+             }
+
+      refute changeset2.valid?
+    end
+
+    test "required list, min: 2" do
+      schema = %{list: [type: {:array, :string}, required: true, min: 1]}
+
+      works = %{"list" => ["hello"]}
+      breaks = %{}
+
+      changeset1 = Goal.build_changeset(schema, works)
+      changeset2 = Goal.build_changeset(schema, breaks)
+
+      assert changes_on(changeset1) == %{list: ["hello"]}
+      assert changeset1.valid?
+      assert errors_on(changeset2) == %{list: ["can't be blank"]}
+      refute changeset2.valid?
+    end
+
+    test "list, items and basic types together" do
+      schema = %{
+        name: [type: :string, min: 1, required: true],
+        age: [type: :integer],
+        hobbies: [type: {:array, :string}, required: true, min: 1, rules: [trim: true, min: 2]],
+        picks: [type: {:array, :integer}, max: 4, rules: [min: 14, max: 48]]
+      }
+
+      data = %{
+        "age" => "pete",
+        "hobbies" => ["i "],
+        "picks" => [11, 44, 19, 22, 31]
+      }
+
+      changeset = Goal.build_changeset(schema, data)
+
+      assert errors_on(changeset) == %{
+               name: ["can't be blank"],
+               age: ["is invalid"],
+               hobbies: ["item should be at least 2 character(s)"],
+               picks: [
+                 "item must be greater than or equal to 14",
+                 "should have at most 4 item(s)"
+               ]
+             }
+
+      refute changeset.valid?
+    end
+
+    test "list, missing items" do
+      schema = %{
+        list: [type: {:array, :string}, required: true, rules: [format: :uuid]]
+      }
+
+      changeset = Goal.build_changeset(schema, %{})
+      refute changeset.valid?
+
+      assert errors_on(changeset) == %{
+               list: ["can't be blank"]
+             }
+    end
+
+    test "list, different type given" do
+      schema = %{
+        list: [type: {:array, :string}, rules: [format: :uuid]]
+      }
+
+      changeset = Goal.build_changeset(schema, %{"list" => "not_a_list"})
+      refute changeset.valid?
+
+      assert errors_on(changeset) == %{
+               list: ["is invalid"]
+             }
+    end
+
+    test "list item validations do not override the changeset validity" do
+      schema = %{
+        name: [type: :string, max: 3],
+        list: [type: {:array, :string}, min: 1, rules: [min: 1]]
+      }
+
+      data = %{"name" => "peetee", "list" => ["hello", "world"]}
+
+      changeset = Goal.build_changeset(schema, data)
+
+      assert errors_on(changeset) == %{name: ["should be at most 3 character(s)"]}
+      refute changeset.valid?
+    end
+
+    test "list with maps validation does not override changeset validity" do
+      schema = %{
+        name: [type: :string, max: 3],
+        list_2: [
+          type: {:array, :map},
+          properties: %{
+            name: [type: :string, required: true]
+          }
+        ]
+      }
+
+      params = %{
+        "name" => "peetee",
+        "list_2" => [
+          %{"name" => "hello"}
+        ]
+      }
+
+      changeset = Goal.build_changeset(schema, params)
+
+      refute changeset.valid?
     end
 
     test "missing schema rules" do

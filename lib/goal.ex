@@ -168,6 +168,25 @@ defmodule Goal do
   {:ok, %{nested_map: %{inner_map: %{map: %{id: 123, list: [1, 2, 3]}}}}}
   ```
 
+  ### Powerful array validations
+
+  If you need expressive validations for arrays types, look no further!
+
+  Arrays can be made optional/required or the number of items can be set via `min`, `max` and `is`.
+  Additionally, `rules` allows specifying any validations that are available for the inner type.
+  Of course, both can be combined:
+
+  ```elixir
+  use Goal
+
+  defparams do
+    required :my_list, {:array, :string}, max: 2, rules: [trim: true, min: 1]
+  end
+
+  iex(1)> Goal.validate_params(schema(), %{"my_list" => ["hello ", " world "]})
+  {:ok, %{my_list: ["hello", "world"]}}
+  ```
+
   ### Readable error messages
 
   Use `Goal.traverse_errors/2` to build readable errors. Phoenix by default uses
@@ -243,7 +262,7 @@ defmodule Goal do
   | ---------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------- |
   | `:uuid`                | `:equals`                   | string value                                                                                         |
   | `:string`              | `:equals`                   | string value                                                                                         |
-  |                        | `:is`                       | string length                                                                                        |
+  |                        | `:is`                       | exact string length                                                                                  |
   |                        | `:min`                      | minimum string length                                                                                |
   |                        | `:max`                      | maximum string length                                                                                |
   |                        | `:trim`                     | oolean to remove leading and trailing spaces                                                         |
@@ -273,7 +292,10 @@ defmodule Goal do
   | `:enum`                | `:values`                   | list of allowed values                                                                               |
   | `:map`                 | `:properties`               | use `:properties` to define the fields                                                               |
   | `{:array, :map}`       | `:properties`               | use `:properties` to define the fields                                                               |
-  | `{:array, inner_type}` |                             | `inner_type` can be any of the basic types                                                           |
+  | `{:array, inner_type}` | `:rules`                    | `inner_type` can be any basic type. `rules` supported all validations available for `inner_type`     |
+  |                        | `:min`                      | minimum array length                                                                                 |
+  |                        | `:max`                      | maximum array length                                                                                 |
+  |                        | `:is`                       | exact array length                                                                                   |
   | More basic types       |                             | See [Ecto.Schema](https://hexdocs.pm/ecto/Ecto.Schema.html#module-primitive-types) for the full list |
 
   The default basic type is `:string`. You don't have to define this field if you are using the
@@ -674,21 +696,21 @@ defmodule Goal do
       {:is, integer}, acc ->
         change = get_in(acc, [Access.key(:changes), Access.key(field)])
 
-        if is_binary(change),
+        if is_binary(change) || is_list(change),
           do: validate_length(acc, field, is: integer),
           else: validate_number(acc, field, equal_to: integer)
 
       {:min, integer}, acc ->
         change = get_in(acc, [Access.key(:changes), Access.key(field)])
 
-        if is_binary(change),
+        if is_binary(change) || is_list(change),
           do: validate_length(acc, field, min: integer),
           else: validate_number(acc, field, greater_than_or_equal_to: integer)
 
       {:max, integer}, acc ->
         change = get_in(acc, [Access.key(:changes), Access.key(field)])
 
-        if is_binary(change),
+        if is_binary(change) || is_list(change),
           do: validate_length(acc, field, max: integer),
           else: validate_number(acc, field, less_than_or_equal_to: integer)
 
@@ -735,9 +757,18 @@ defmodule Goal do
 
   defp validate_nested_fields(%Changeset{changes: changes} = changeset, types, schema) do
     Enum.reduce(types, changeset, fn
-      {field, :map}, acc -> validate_map_field(changes, field, schema, acc)
-      {field, {:array, :map}}, acc -> validate_array_field(changes, field, schema, acc)
-      {_field, _type}, acc -> acc
+      {field, :map}, acc ->
+        validate_map_field(changes, field, schema, acc)
+
+      {field, {:array, :map}}, acc ->
+        validate_array_map_field(changes, field, schema, acc)
+
+      {field, {:array, type}}, acc
+      when type in [:string, :integer, :decimal, :float, :boolean, :date, :time] ->
+        validate_array_basic_field(changes, field, schema, type, acc)
+
+      {_field, _type}, acc ->
+        acc
     end)
   end
 
@@ -763,23 +794,23 @@ defmodule Goal do
     end
   end
 
-  defp validate_array_field(changes, field, schema, changeset) do
+  defp validate_array_map_field(changes, field, schema, changeset) do
     params = Map.get(changes, field)
     rules = Map.get(schema, field)
     schema = Keyword.get(rules, :properties)
 
-    if schema do
-      {valid?, changesets} = reduce_and_validate_array_fields(schema, params)
+    if schema && is_list(params) do
+      {valid?, changesets} = reduce_and_validate_array_map_fields(schema, params)
 
       changeset
       |> put_in([Access.key(:changes), Access.key(field)], Enum.reverse(changesets))
-      |> Map.put(:valid?, valid?)
+      |> Map.update!(:valid?, &Kernel.&&(&1, valid?))
     else
       changeset
     end
   end
 
-  defp reduce_and_validate_array_fields(schema, params) do
+  defp reduce_and_validate_array_map_fields(schema, params) do
     Enum.reduce(params, {true, []}, fn params, {boolean, list} ->
       schema
       |> build_changeset(params)
@@ -791,6 +822,62 @@ defmodule Goal do
           {false, [inner_changeset | list]}
       end
     end)
+  end
+
+  defp validate_array_basic_field(changes, field, schema, type, changeset) do
+    params = Map.get(changes, field)
+    rules = Map.get(schema, field)
+    item_rules = Keyword.get(rules, :rules)
+
+    if item_rules && is_list(params) do
+      case reduce_and_validate_array_basic_fields(item_rules, type, field, params) do
+        {:valid, changes} ->
+          changeset
+          |> put_in([Access.key(:changes), Access.key(field)], Enum.reverse(changes))
+          |> Map.update!(:valid?, &Kernel.&&(&1, true))
+
+        {:invalid, errors} ->
+          changeset
+          |> Map.update!(:errors, &(errors ++ &1))
+          |> Map.put(:valid?, false)
+      end
+    else
+      changeset
+    end
+  end
+
+  defp reduce_and_validate_array_basic_fields(schema, type, field, params) do
+    schema = %{:inner_schema => [{:type, type} | schema]}
+
+    result =
+      Enum.reduce(params, {:valid, []}, fn params, {status, acc} ->
+        changeset = build_changeset(schema, %{:inner_schema => params})
+
+        case {status, changeset} do
+          {:valid, %Changeset{valid?: true, changes: %{:inner_schema => inner_changes}}} ->
+            {:valid, [inner_changes | acc]}
+
+          {:valid, %Changeset{valid?: false, errors: errors}} ->
+            # The implementation is "all or nothing", so even if there where successful
+            # changes before, we reset them now since the whole changeset isn't valid.
+            {:invalid, MapSet.new(errors)}
+
+          {:invalid, %Changeset{valid?: false, errors: errors}} ->
+            {:invalid, MapSet.new(errors) |> MapSet.union(acc)}
+
+          {:invalid, %Changeset{valid?: true}} ->
+            {:invalid, acc}
+        end
+      end)
+
+    case result do
+      {:invalid, errors} ->
+        errors = for {:inner_schema, {msg, opts}} <- errors, do: {field, {"item " <> msg, opts}}
+        {:invalid, errors}
+
+      {:valid, changeset} ->
+        {:valid, changeset}
+    end
   end
 
   defp is_atom_map?(map) when is_map(map) do
