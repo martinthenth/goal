@@ -732,6 +732,9 @@ defmodule Goal do
       {:format, :url}, acc ->
         validate_format(acc, field, Goal.Regex.url())
 
+      {:format, %Regex{} = regex}, acc ->
+        validate_format(acc, field, regex)
+
       {:less_than, integer}, acc ->
         validate_number(acc, field, less_than: integer)
 
