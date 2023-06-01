@@ -542,6 +542,19 @@ defmodule GoalTest do
       assert errors_on(changeset_2) == %{url: ["has invalid format"]}
     end
 
+    test "string, format: %Regex{}" do
+      schema = %{id: [type: :string, format: ~r/a-d0-5/i]}
+
+      data_1 = %{"id" => "ad41cb"}
+      data_2 = %{"id" => "zu981ik"}
+
+      changeset_1 = Goal.build_changeset(schema, data_1)
+      changeset_2 = Goal.build_changeset(schema, data_2)
+
+      assert changes_on(changeset_1) == %{id: "ad41cb"}
+      assert errors_on(changeset_2) == %{id: ["has invalid format"]}
+    end
+
     test "integer, is: 5" do
       schema = %{age: [type: :integer, is: 5]}
 
