@@ -1,18 +1,24 @@
-# 0.2.5
+# 0.3.0
 
-No breaking changes.
+- Adds support for validation on array items (https://github.com/martinthenth/goal/pull/50 - by [@LukasKnuth](https://github.com/LukasKnuth))
+- Adds support for Regex validation in `defparams` (https://github.com/martinthenth/goal/pull/53 - by [@LukasKnuth](https://github.com/LukasKnuth))
+- Adds the `:any` field type in `defparams`, enabling presence checks without validation
+- Fixes a bug with optional arrays of maps
+- Removes `defschema` in favor of `defparams`
+
+Migration instructions:
+
+1.  Replace `defschema` with `defparams` definitions
+
+# 0.2.5
 
 - Fixes a bug with recasing inbound keys when an empty map is given as parameter
 
 # 0.2.4
 
-No breaking changes.
-
 - Fixes a bug with `recase_keys: [from: :camel_case]` where empty values were ignored
 
 # 0.2.3
-
-No breaking changes.
 
 - Adds `recase_keys/2` for recasing outbound keys
 - Adds optional `:to_case` option to `:recase_keys` global configuration
@@ -20,21 +26,15 @@ No breaking changes.
 
 # 0.2.2
 
-No breaking changes.
-
 - Fixes a bug in `recase_keys/4` when it receives a value that isn't a map or list of maps
 
 # 0.2.1
-
-No breaking changes.
 
 - Adds `recase_keys/3` to recase parameter keys from `camelCase`, `snake_case`, `PascalCase` or `kebab-case`
 - Adds optional `:recase_keys` configuration to `validate/3` and `validate_params/3`
 - Adds optional `:recase_keys` global configuration
 
 # 0.2.0
-
-Breaking changes!
 
 - Adds new macros `defparams/1` and `defparams/2`
 - Adds `changeset/1` and `changeset/2` to build changesets from schemas defined with `defparams/2`.
@@ -53,21 +53,15 @@ See the docs for more information on the new `defparams` macro.
 
 # 0.1.3
 
-No breaking changes.
-
 - Exposes `build_changeset/2` in the main namespace (`Goal`)
 - Updates documentation for use with LiveViews
 
 # 0.1.2
 
-No breaking changes.
-
 - Adds `:uuid` type
 - Improves password regex to allow non-alphanumeric characters
 
 # 0.1.1
-
-No breaking changes.
 
 - Allow number validations for all number fields (incl. `:decimal`, `:float`)
 - Adds performance optimizations to the validation logic
@@ -76,8 +70,6 @@ No breaking changes.
 - Updates documentation
 
 # 0.1.0
-
-No breaking changes.
 
 - Adds `defschema` macro for defining validation schemas with less boilerplate
 
