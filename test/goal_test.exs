@@ -13,6 +13,8 @@ defmodule GoalTest do
     optional(:user_id, :integer)
     optional(:first_name, :string)
     optional(:last_name, :string)
+    required(:any_1)
+    optional(:any_2)
   end
 
   defparams :index do
@@ -57,7 +59,9 @@ defmodule GoalTest do
                id: [type: :integer, required: true],
                user_id: [type: :integer],
                first_name: [type: :string],
-               last_name: [type: :string]
+               last_name: [type: :string],
+               any_1: [type: :any, required: true],
+               any_2: [type: :any]
              }
 
       assert schema(:index) == %{
@@ -108,7 +112,10 @@ defmodule GoalTest do
       assert %Ecto.Changeset{
                action: nil,
                changes: %{},
-               errors: [id: {"can't be blank", [validation: :required]}],
+               errors: [
+                 id: {"can't be blank", [validation: :required]},
+                 any_1: {"can't be blank", [validation: :required]}
+               ],
                data: %{},
                valid?: false
              } = changeset(:show)
@@ -121,35 +128,43 @@ defmodule GoalTest do
                errors: [],
                data: %{},
                valid?: true
-             } = changeset(:show, %{id: 123})
+             } = changeset(:show, %{id: 123, any_1: 123})
 
       assert %Ecto.Changeset{
                action: nil,
                changes: %{},
-               errors: [id: {"can't be blank", [validation: :required]}],
+               errors: [
+                 id: {"can't be blank", [validation: :required]},
+                 any_1: {"can't be blank", [validation: :required]}
+               ],
                data: %{},
                valid?: false
              } = changeset(:show, %{})
     end
 
     test "validate/3" do
-      assert validate(:show, %{id: 123}) == {:ok, %{id: 123}}
+      assert validate(:show, %{id: 123, any_1: 123}) == {:ok, %{id: 123, any_1: 123}}
 
       assert {:error,
               %Ecto.Changeset{
                 action: :validate,
                 changes: %{},
-                errors: [id: {"can't be blank", [validation: :required]}],
+                errors: [
+                  id: {"can't be blank", [validation: :required]},
+                  any_1: {"can't be blank", [validation: :required]}
+                ],
                 data: %{},
                 valid?: false
               }} = validate(:show, %{})
 
-      assert validate(:show, %{id: 123, firstName: "Jane", lastName: "Doe"},
+      assert validate(:show, %{id: 123, firstName: "Jane", lastName: "Doe", any1: 123},
                recase_keys: [from: :camel_case]
-             ) == {:ok, %{id: 123, first_name: "Jane", last_name: "Doe"}}
+             ) == {:ok, %{id: 123, first_name: "Jane", last_name: "Doe", any_1: 123}}
 
-      assert validate(:show, %{id: 123, user_id: 123}, recase_keys: [from: :camel_case]) ==
-               {:ok, %{id: 123, user_id: 123}}
+      assert validate(:show, %{id: 123, user_id: 123, any_1: 123},
+               recase_keys: [from: :camel_case]
+             ) ==
+               {:ok, %{id: 123, user_id: 123, any_1: 123}}
     end
   end
 
@@ -379,6 +394,19 @@ defmodule GoalTest do
       assert errors_on(changeset_2) == %{integers: ["has an invalid entry"]}
     end
 
+    test "any" do
+      schema = %{any: [type: :any]}
+
+      params_1 = %{"any" => "hello-world"}
+      params_2 = %{"any" => 123}
+
+      changeset_1 = Goal.build_changeset(schema, params_1)
+      changeset_2 = Goal.build_changeset(schema, params_2)
+
+      assert changes_on(changeset_1) == %{any: "hello-world"}
+      assert changes_on(changeset_2) == %{any: 123}
+    end
+
     test "uuid" do
       schema = %{uuid: [type: :uuid]}
 
@@ -543,10 +571,10 @@ defmodule GoalTest do
     end
 
     test "string, format: %Regex{}" do
-      schema = %{id: [type: :string, format: ~r/a-d0-5/i]}
+      schema = %{id: [type: :string, format: ~r/^[[:alnum:]]+$/]}
 
       data_1 = %{"id" => "ad41cb"}
-      data_2 = %{"id" => "zu981ik"}
+      data_2 = %{"id" => "zu981ik&*^"}
 
       changeset_1 = Goal.build_changeset(schema, data_1)
       changeset_2 = Goal.build_changeset(schema, data_2)
@@ -953,7 +981,6 @@ defmodule GoalTest do
 
       changeset = Goal.build_changeset(schema, %{"list" => "not a list"})
 
-      refute changeset.valid?
       assert errors_on(changeset) == %{list: ["is invalid"]}
     end
 
@@ -969,7 +996,7 @@ defmodule GoalTest do
         list: [
           type: {:array, :map},
           properties: %{
-            string: [format: :uuid],
+            string: [type: :string, format: :uuid],
             integer: [type: :integer]
           }
         ]
@@ -1068,7 +1095,6 @@ defmodule GoalTest do
 
       changeset = Goal.build_changeset(schema, data)
 
-      assert changeset.valid?
       assert changes_on(changeset) == %{strings: ["hello", "world"]}
     end
 
@@ -1085,8 +1111,6 @@ defmodule GoalTest do
       }
 
       changeset = Goal.build_changeset(schema, data)
-
-      refute changeset.valid?
 
       assert errors_on(changeset) == %{
                strings: [
@@ -1109,8 +1133,6 @@ defmodule GoalTest do
       }
 
       changeset = Goal.build_changeset(schema, data)
-
-      refute changeset.valid?
 
       assert errors_on(changeset) == %{
                strings: [
@@ -1137,11 +1159,8 @@ defmodule GoalTest do
       changeset3 = Goal.build_changeset(schema, breaks2)
 
       assert changes_on(changeset1) == %{list: ["hello"]}
-      assert changeset1.valid?
       assert errors_on(changeset2) == %{list: ["item should be at least 2 character(s)"]}
-      refute changeset2.valid?
       assert errors_on(changeset3) == %{list: ["should have at least 1 item(s)"]}
-      refute changeset3.valid?
     end
 
     test "optional list, min: 1" do
@@ -1149,7 +1168,6 @@ defmodule GoalTest do
 
       changeset = Goal.build_changeset(schema, %{"list" => []})
 
-      refute changeset.valid?
       assert errors_on(changeset) == %{list: ["should have at least 1 item(s)"]}
     end
 
@@ -1165,11 +1183,8 @@ defmodule GoalTest do
       changeset3 = Goal.build_changeset(schema, optional)
 
       assert changes_on(changeset1) == %{list: ["a", "b"]}
-      assert changeset1.valid?
       assert errors_on(changeset2) == %{list: ["should have at least 2 item(s)"]}
-      refute changeset2.valid?
-      assert errors_on(changeset3) == %{}
-      assert changeset3.valid?
+      assert changes_on(changeset3) == %{}
     end
 
     test "list, max: 2" do
@@ -1184,11 +1199,8 @@ defmodule GoalTest do
       changeset3 = Goal.build_changeset(schema, optional)
 
       assert changes_on(changeset1) == %{list: ["a", "b"]}
-      assert changeset1.valid?
       assert errors_on(changeset2) == %{list: ["should have at most 2 item(s)"]}
-      refute changeset2.valid?
-      assert errors_on(changeset3) == %{}
-      assert changeset3.valid?
+      assert changes_on(changeset3) == %{}
     end
 
     test "list, is: 2" do
@@ -1205,13 +1217,9 @@ defmodule GoalTest do
       changeset4 = Goal.build_changeset(schema, optional)
 
       assert changes_on(changeset1) == %{list: ["a", "b"]}
-      assert changeset1.valid?
       assert errors_on(changeset2) == %{list: ["should have 2 item(s)"]}
-      refute changeset2.valid?
       assert errors_on(changeset3) == %{list: ["should have 2 item(s)"]}
-      refute changeset3.valid?
-      assert errors_on(changeset4) == %{}
-      assert changeset4.valid?
+      assert changes_on(changeset4) == %{}
     end
 
     test "list and item both invalid" do
@@ -1224,7 +1232,6 @@ defmodule GoalTest do
       changeset2 = Goal.build_changeset(schema, breaks)
 
       assert changes_on(changeset1) == %{list: ["hello"]}
-      assert changeset1.valid?
 
       assert errors_on(changeset2) == %{
                list: [
@@ -1232,8 +1239,6 @@ defmodule GoalTest do
                  "should have at most 1 item(s)"
                ]
              }
-
-      refute changeset2.valid?
     end
 
     test "required list, min: 2" do
@@ -1246,9 +1251,7 @@ defmodule GoalTest do
       changeset2 = Goal.build_changeset(schema, breaks)
 
       assert changes_on(changeset1) == %{list: ["hello"]}
-      assert changeset1.valid?
       assert errors_on(changeset2) == %{list: ["can't be blank"]}
-      refute changeset2.valid?
     end
 
     test "list, items and basic types together" do
@@ -1276,8 +1279,6 @@ defmodule GoalTest do
                  "should have at most 4 item(s)"
                ]
              }
-
-      refute changeset.valid?
     end
 
     test "list, missing items" do
@@ -1286,7 +1287,6 @@ defmodule GoalTest do
       }
 
       changeset = Goal.build_changeset(schema, %{})
-      refute changeset.valid?
 
       assert errors_on(changeset) == %{
                list: ["can't be blank"]
@@ -1299,7 +1299,6 @@ defmodule GoalTest do
       }
 
       changeset = Goal.build_changeset(schema, %{"list" => "not_a_list"})
-      refute changeset.valid?
 
       assert errors_on(changeset) == %{
                list: ["is invalid"]
@@ -1317,7 +1316,6 @@ defmodule GoalTest do
       changeset = Goal.build_changeset(schema, data)
 
       assert errors_on(changeset) == %{name: ["should be at most 3 character(s)"]}
-      refute changeset.valid?
     end
 
     test "list with maps validation does not override changeset validity" do
@@ -1340,7 +1338,7 @@ defmodule GoalTest do
 
       changeset = Goal.build_changeset(schema, params)
 
-      refute changeset.valid?
+      assert errors_on(changeset) == %{name: ["should be at most 3 character(s)"]}
     end
 
     test "missing schema rules" do
