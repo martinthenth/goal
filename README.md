@@ -145,6 +145,19 @@ end
 
 ## Features
 
+### Presence checks
+
+Sometimes all you need is to check if a parameter is present:
+
+```elixir
+use Goal
+
+defparams :show do
+  required :id
+  optional :query
+end
+```
+
 ### Deeply nested maps
 
 Goal efficiently builds error changesets for nested maps, and has support for lists of nested
@@ -153,7 +166,7 @@ maps. There is no limitation on depth.
 ```elixir
 use Goal
 
-defparams do
+defparams :show do
   optional :nested_map, :map do
     required :id, :integer
     optional :inner_map, :map do
@@ -166,7 +179,7 @@ defparams do
   end
 end
 
-iex(1)> Goal.validate_params(schema(), params)
+iex(1)> validate(:show, params)
 {:ok, %{nested_map: %{inner_map: %{map: %{id: 123, list: [1, 2, 3]}}}}}
 ```
 
@@ -299,9 +312,6 @@ The field types and available validations are:
 |                        | `:max`                      | maximum array length                                                                                 |
 |                        | `:is`                       | exact array length                                                                                   |
 | More basic types       |                             | See [Ecto.Schema](https://hexdocs.pm/ecto/Ecto.Schema.html#module-primitive-types) for the full list |
-
-The default basic type is `:string`. You don't have to define this field if you are using the
-basic syntax.
 
 All field types, excluding `:map` and `{:array, :map}`, can use `:equals`, `:subset`,
 `:included`, `:excluded` validations.

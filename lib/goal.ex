@@ -143,6 +143,19 @@ defmodule Goal do
 
   ## Features
 
+  ### Presence checks
+
+  Sometimes all you need is to check if a parameter is present:
+
+  ```elixir
+  use Goal
+
+  defparams :show do
+    required :id
+    optional :query
+  end
+  ```
+
   ### Deeply nested maps
 
   Goal efficiently builds error changesets for nested maps, and has support for lists of nested
@@ -151,7 +164,7 @@ defmodule Goal do
   ```elixir
   use Goal
 
-  defparams do
+  defparams :schema do
     optional :nested_map, :map do
       required :id, :integer
       optional :inner_map, :map do
@@ -164,7 +177,7 @@ defmodule Goal do
     end
   end
 
-  iex(1)> Goal.validate_params(schema(), params)
+  iex(1)> validate(:show, params)
   {:ok, %{nested_map: %{inner_map: %{map: %{id: 123, list: [1, 2, 3]}}}}}
   ```
 
@@ -297,9 +310,6 @@ defmodule Goal do
   |                        | `:max`                      | maximum array length                                                                                 |
   |                        | `:is`                       | exact array length                                                                                   |
   | More basic types       |                             | See [Ecto.Schema](https://hexdocs.pm/ecto/Ecto.Schema.html#module-primitive-types) for the full list |
-
-  The default basic type is `:string`. You don't have to define this field if you are using the
-  basic syntax.
 
   All field types, excluding `:map` and `{:array, :map}`, can use `:equals`, `:subset`,
   `:included`, `:excluded` validations.
@@ -576,6 +586,10 @@ defmodule Goal do
     end)
   end
 
+  defp generate_schema({:optional, _lines, [field]}) do
+    %{field => [{:type, :any}]}
+  end
+
   defp generate_schema({:optional, _lines, [field, type]}) do
     %{field => [{:type, type}]}
   end
@@ -589,6 +603,10 @@ defmodule Goal do
     else
       %{field => [{:type, type} | options]}
     end
+  end
+
+  defp generate_schema({:required, _lines, [field]}) do
+    %{field => [{:type, :any}, {:required, true}]}
   end
 
   defp generate_schema({:required, _lines, [field, type]}) do
@@ -612,7 +630,7 @@ defmodule Goal do
 
   defp get_types(schema) do
     Enum.reduce(schema, %{}, fn {field, rules}, acc ->
-      case Keyword.get(rules, :type, :string) do
+      case Keyword.get(rules, :type, :any) do
         :enum ->
           values =
             rules

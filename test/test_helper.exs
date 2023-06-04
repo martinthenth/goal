@@ -1,9 +1,9 @@
 ExUnit.start()
 
 defmodule Goal.Helpers do
-  def changes_on(changeset), do: changeset.changes
+  def changes_on(%Ecto.Changeset{valid?: true} = changeset), do: changeset.changes
 
-  def errors_on(changeset) do
+  def errors_on(%Ecto.Changeset{valid?: false} = changeset) do
     Goal.traverse_errors(changeset, fn {message, opts} ->
       Regex.replace(~r"%{(\w+)}", message, fn _map, key ->
         opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
