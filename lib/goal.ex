@@ -397,34 +397,6 @@ defmodule Goal do
   end
 
   @doc """
-  A macro for defining validation schemas. Can be assigned to a variable.
-
-  ```elixir
-  import Goal
-
-  defp schema do
-    defschema do
-      required :id, :string, format: :uuid
-      required :name, :string
-      optional :age, :integer, min: 0, max: 120
-      optional :gender, :enum, values: ["female", "male", "non-binary"]
-
-      required :data, :map do
-        required :city, :string
-        optional :birthday, :date
-      end
-    end
-  end
-  ```
-  """
-  @spec defschema(do_block()) :: any
-  defmacro defschema(do: block) do
-    block
-    |> generate_schema()
-    |> Macro.escape()
-  end
-
-  @doc """
   A macro for defining validation schemas encapsulated in a `schema` function with arity 0.
 
   ```elixir
