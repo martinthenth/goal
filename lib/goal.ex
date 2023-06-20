@@ -376,10 +376,11 @@ defmodule Goal do
       Builds a changeset from the schema and params.
       """
       @spec changeset(name(), params()) :: changeset()
-      def changeset(name, params \\ %{}) do
-        name
-        |> schema()
-        |> build_changeset(params)
+      def changeset(name, params \\ %{}, opts \\ []) do
+        schema = schema(name)
+        params = recase_keys(schema, params, opts)
+
+        build_changeset(schema, params)
       end
 
       @doc """
