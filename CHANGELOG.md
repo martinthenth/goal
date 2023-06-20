@@ -1,3 +1,7 @@
+# 0.3.1
+
+- Adds support for recasing inbound keys in `changeset/3`
+
 # 0.3.0
 
 - Adds support for validation on array items (https://github.com/martinthenth/goal/pull/50 - by [@LukasKnuth](https://github.com/LukasKnuth))

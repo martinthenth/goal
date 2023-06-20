@@ -142,6 +142,19 @@ defmodule GoalTest do
              } = changeset(:show, %{})
     end
 
+    test "changeset/3" do
+      assert %Ecto.Changeset{
+               action: nil,
+               changes: %{},
+               errors: [],
+               data: %{},
+               valid?: true
+             } =
+               changeset(:show, %{id: 123, any_1: 123, firstName: "Joan", lastName: "Of Arc"},
+                 recase_keys: [from: :camel_case]
+               )
+    end
+
     test "validate/3" do
       assert validate(:show, %{id: 123, any_1: 123}) == {:ok, %{id: 123, any_1: 123}}
 
