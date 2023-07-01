@@ -21,7 +21,7 @@ Add `goal` to the list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:goal, "~> 0.2"}
+    {:goal, "~> 0.3"}
   ]
 end
 ```
