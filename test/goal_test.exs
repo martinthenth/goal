@@ -603,7 +603,7 @@ defmodule GoalTest do
 
       schema = %{hash: [type: :string, format: :custom]}
 
-      hash =  :crypto.hash(:sha, "test") |> Base.encode16
+      hash = :crypto.hash(:sha, "test") |> Base.encode16()
       data_1 = %{"hash" => hash}
       data_2 = %{"hash" => "notahash"}
 
