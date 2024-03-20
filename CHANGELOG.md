@@ -1,3 +1,7 @@
+# 0.3.2
+
+- Adds support for custom regexes via the application config.
+
 # 0.3.1
 
 - Adds support for recasing inbound keys in `changeset/3`
