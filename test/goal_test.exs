@@ -115,8 +115,8 @@ defmodule GoalTest do
                action: nil,
                changes: %{},
                errors: [
-                 id: {"can't be blank", [validation: :required]},
-                 any_1: {"can't be blank", [validation: :required]}
+                 any_1: {"can't be blank", [validation: :required]},
+                 id: {"can't be blank", [validation: :required]}
                ],
                data: %{},
                valid?: false
@@ -136,8 +136,8 @@ defmodule GoalTest do
                action: nil,
                changes: %{},
                errors: [
-                 id: {"can't be blank", [validation: :required]},
-                 any_1: {"can't be blank", [validation: :required]}
+                 any_1: {"can't be blank", [validation: :required]},
+                 id: {"can't be blank", [validation: :required]}
                ],
                data: %{},
                valid?: false
@@ -165,8 +165,8 @@ defmodule GoalTest do
                 action: :validate,
                 changes: %{},
                 errors: [
-                  id: {"can't be blank", [validation: :required]},
-                  any_1: {"can't be blank", [validation: :required]}
+                  any_1: {"can't be blank", [validation: :required]},
+                  id: {"can't be blank", [validation: :required]}
                 ],
                 data: %{},
                 valid?: false
@@ -178,8 +178,7 @@ defmodule GoalTest do
 
       assert validate(:show, %{id: 123, user_id: 123, any_1: 123},
                recase_keys: [from: :camel_case]
-             ) ==
-               {:ok, %{id: 123, user_id: 123, any_1: 123}}
+             ) == {:ok, %{id: 123, user_id: 123, any_1: 123}}
     end
   end
 
