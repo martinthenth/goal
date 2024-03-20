@@ -116,4 +116,15 @@ defmodule Goal.RegexTest do
       Application.delete_env(:goal, :url_regex)
     end
   end
+
+  describe "custom/1" do
+    test "with a custom regex" do
+      Application.put_env(:goal, :custom_regex, ~r/^[[:alpha:]]+$/)
+
+      assert String.match?("abc", Regex.custom(:custom)) == true
+      assert String.match?("123", Regex.custom(:custom)) == false
+
+      Application.delete_env(:goal, :custom_regex)
+    end
+  end
 end

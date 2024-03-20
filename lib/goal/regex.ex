@@ -38,4 +38,10 @@ defmodule Goal.Regex do
       ~r/^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/
     )
   end
+
+  @doc false
+  @spec custom(atom()) :: Regex.t()
+  def custom(key) when is_atom(key) do
+    Application.get_env(:goal, String.to_atom("#{key}_regex"), nil)
+  end
 end

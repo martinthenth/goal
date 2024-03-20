@@ -24,6 +24,7 @@ defmodule GoalTest do
     optional(:type, :string, squish: true)
     optional(:age, :integer, min: 0, max: 120)
     optional(:gender, :enum, values: ["female", "male", "non-binary"])
+    optional(:hash, :string, format: :hash)
 
     required :car, :map do
       optional(:name, :string, min: 3, max: 20)
@@ -71,6 +72,7 @@ defmodule GoalTest do
                type: [type: :string, squish: true],
                age: [type: :integer, min: 0, max: 120],
                gender: [type: :enum, values: ["female", "male", "non-binary"]],
+               hash: [type: :string, format: :hash],
                car: [
                  type: :map,
                  required: true,
@@ -594,6 +596,24 @@ defmodule GoalTest do
 
       assert changes_on(changeset_1) == %{id: "ad41cb"}
       assert errors_on(changeset_2) == %{id: ["has invalid format"]}
+    end
+
+    test "string, format: custom regex" do
+      Application.put_env(:goal, :custom_regex, ~r/^[a-fA-F0-9]{40}$/)
+
+      schema = %{hash: [type: :string, format: :custom]}
+
+      hash = :crypto.hash(:sha, "test") |> Base.encode16()
+      data_1 = %{"hash" => hash}
+      data_2 = %{"hash" => "notahash"}
+
+      changeset_1 = Goal.build_changeset(schema, data_1)
+      changeset_2 = Goal.build_changeset(schema, data_2)
+
+      assert changes_on(changeset_1) == %{hash: hash}
+      assert errors_on(changeset_2) == %{hash: ["has invalid format"]}
+
+      Application.delete_env(:goal, :custom_regex)
     end
 
     test "integer, is: 5" do

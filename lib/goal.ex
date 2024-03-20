@@ -726,6 +726,9 @@ defmodule Goal do
       {:format, %Regex{} = regex}, acc ->
         validate_format(acc, field, regex)
 
+      {:format, key}, acc when is_atom(key) ->
+        validate_format(acc, field, Goal.Regex.custom(key))
+
       {:less_than, integer}, acc ->
         validate_number(acc, field, less_than: integer)
 
