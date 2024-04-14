@@ -1,4 +1,4 @@
-# Goal ⚽
+# Goal
 
 Goal is a parameter validation library based on [Ecto](https://github.com/elixir-ecto/ecto).
 It can be used with JSON APIs, HTML controllers and LiveViews.
