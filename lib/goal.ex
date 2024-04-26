@@ -583,7 +583,7 @@ defmodule Goal do
 
   defp generate_schema({:__block__, _lines, contents}) do
     Enum.reduce(contents, %{}, fn function, acc ->
-      Map.merge(acc, function |> parse_negatives() |> generate_schema())
+      Map.merge(acc, generate_schema(function))
     end)
   end
 
@@ -602,7 +602,8 @@ defmodule Goal do
 
       %{field => [{:type, type} | [{:properties, properties} | clean_options]]}
     else
-      %{field => [{:type, type} | options]}
+      {new_options, _} = Code.eval_quoted(options)
+      %{field => [{:type, type} | new_options]}
     end
   end
 
@@ -625,7 +626,8 @@ defmodule Goal do
         ]
       }
     else
-      %{field => [{:type, type} | [{:required, true} | options]]}
+      {new_options, _} = Code.eval_quoted(options)
+      %{field => [{:type, type} | [{:required, true} | new_options]]}
     end
   end
 
@@ -925,19 +927,6 @@ defmodule Goal do
       value
     end
   end
-
-  defp parse_negatives({requirement, lines, [field, type, options]})
-       when type in [:integer, :decimal, :float] do
-    new_options =
-      Enum.map(options, fn {k, v} ->
-        {evaluated, _} = Code.eval_quoted(v)
-        {k, evaluated}
-      end)
-
-    {requirement, lines, [field, type, new_options]}
-  end
-
-  defp parse_negatives(function), do: function
 
   defp recase_outbound_keys(struct, _to_case, _is_atom_map) when is_struct(struct), do: struct
 
