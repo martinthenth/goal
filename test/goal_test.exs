@@ -17,6 +17,13 @@ defmodule GoalTest do
     optional(:any_2)
   end
 
+  defparams :negatives do
+    optional(:a, :integer, min: -1)
+    required(:b, :integer, min: -5, max: -1)
+    required(:c, :float, min: -14.0, max: 7)
+    optional(:d, :decimal, min: Decimal.new(-3), max: Decimal.new(-1))
+  end
+
   defparams :index do
     required(:id, :integer)
     required(:uuid, :string, format: :uuid)
@@ -53,6 +60,15 @@ defmodule GoalTest do
   describe "__using__/1" do
     test "schema/0" do
       assert schema() == %{id: [type: :integer, required: true]}
+    end
+
+    test "schema/1 negatives" do
+      assert schema(:negatives) == %{
+               a: [type: :integer, min: -1],
+               b: [type: :integer, required: true, min: -5, max: -1],
+               c: [type: :float, required: true, min: -14.0, max: 7],
+               d: [type: :decimal, min: Decimal.new(-3), max: Decimal.new(-1)]
+             }
     end
 
     test "schema/1" do
