@@ -595,7 +595,8 @@ defmodule Goal do
     %{field => [{:type, type}]}
   end
 
-  defp generate_schema({:optional, _lines, [field, type, options]}) do
+  defp generate_schema({:optional, _lines, [field, type, options]})
+       when type in [:integer, :float, :decimal] do
     if block_or_function = Keyword.get(options, :do) do
       properties = generate_schema(block_or_function)
       clean_options = Keyword.delete(options, :do)
@@ -607,12 +608,40 @@ defmodule Goal do
     end
   end
 
+  defp generate_schema({:optional, _lines, [field, type, options]}) do
+    if block_or_function = Keyword.get(options, :do) do
+      properties = generate_schema(block_or_function)
+      clean_options = Keyword.delete(options, :do)
+
+      %{field => [{:type, type} | [{:properties, properties} | clean_options]]}
+    else
+      %{field => [{:type, type} | options]}
+    end
+  end
+
   defp generate_schema({:required, _lines, [field]}) do
     %{field => [{:type, :any}, {:required, true}]}
   end
 
   defp generate_schema({:required, _lines, [field, type]}) do
     %{field => [{:type, type}, {:required, true}]}
+  end
+
+  defp generate_schema({:required, _lines, [field, type, options]})
+       when type in [:integer, :float, :decimal] do
+    if block_or_function = Keyword.get(options, :do) do
+      properties = generate_schema(block_or_function)
+      clean_options = Keyword.delete(options, :do)
+
+      %{
+        field => [
+          {:type, type} | [{:required, true} | [{:properties, properties} | clean_options]]
+        ]
+      }
+    else
+      {new_options, _} = Code.eval_quoted(options)
+      %{field => [{:type, type} | [{:required, true} | new_options]]}
+    end
   end
 
   defp generate_schema({:required, _lines, [field, type, options]}) do
@@ -626,8 +655,7 @@ defmodule Goal do
         ]
       }
     else
-      {new_options, _} = Code.eval_quoted(options)
-      %{field => [{:type, type} | [{:required, true} | new_options]]}
+      %{field => [{:type, type} | [{:required, true} | options]]}
     end
   end
 
