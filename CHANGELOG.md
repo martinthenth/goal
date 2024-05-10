@@ -1,3 +1,7 @@
+# 0.3.3
+
+- Fixes a bug with validations for negative numbers (https://github.com/martinthenth/goal/pull/88 - by [@Joraeuw](https://github.com/Joraeuw))
+
 # 0.3.2
 
 - Adds support for custom regexes via the application config.
