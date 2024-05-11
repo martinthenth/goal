@@ -358,24 +358,16 @@ defmodule Goal do
       import Goal, only: [defparams: 1, defparams: 2, build_changeset: 2, recase_keys: 3]
 
       @typedoc false
-      @type name :: atom() | binary()
-
-      @typedoc false
-      @type params :: map()
-
-      @typedoc false
-      @type cases :: :camel_case | :snake_case | :pascal_case | :kebab_case
-
-      @typedoc false
-      @type opts :: [recase_keys: [from: cases()]]
-
-      @typedoc false
-      @type changeset :: Changeset.t()
+      @type goal_opts :: [
+              recase_keys: [from: :camel_case | :snake_case | :pascal_case | :kebab_case]
+            ]
 
       @doc """
       Builds a changeset from the schema and params.
       """
-      @spec changeset(name(), params()) :: changeset()
+      @spec changeset(atom() | binary()) :: Ecto.Changeset.t()
+      @spec changeset(atom() | binary(), map()) :: Ecto.Changeset.t()
+      @spec changeset(atom() | binary(), map(), goal_opts()) :: Ecto.Changeset.t()
       def changeset(name, params \\ %{}, opts \\ []) do
         schema = schema(name)
         params = recase_keys(schema, params, opts)
@@ -386,7 +378,7 @@ defmodule Goal do
       @doc """
       Returns the validated parameters or an error changeset.
       """
-      @spec validate(changeset()) :: {:ok, params()} | {:error, changeset()}
+      @spec validate(Ecto.Changeset.t()) :: {:ok, map()} | {:error, Ecto.Changeset.t()}
       def validate(%Changeset{valid?: true, changes: changes}), do: {:ok, changes}
       def validate(%Changeset{valid?: false} = changeset), do: {:error, changeset}
 
@@ -394,7 +386,9 @@ defmodule Goal do
       Returns the validated parameters or an error changeset.
       Expects a schema to be defined with `defparams`.
       """
-      @spec validate(name(), params(), opts()) :: {:ok, params()} | {:error, changeset()}
+      @spec validate(atom() | binary(), map(), goal_opts()) ::
+              {:ok, map()}
+              | {:error, Ecto.Changeset.t()}
       def validate(name, params \\ %{}, opts \\ []) do
         schema = schema(name)
         params = recase_keys(schema, params, opts)
