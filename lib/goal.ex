@@ -483,61 +483,60 @@ defmodule Goal do
     end
   end
 
-  defmacro optional(name, type \\ :any, opts \\ []) do
-    fields =
-      if type in [:map, {:array, :map}] do
-        case block_or_tuple = Keyword.get(opts, :do) do
-          {:__block__, _, contents} -> contents
-          {_, _, _} -> [block_or_tuple]
-        end
-      else
-        []
-      end
+  @doc """
+  Defines an optional field in the schema.
+  """
+  @spec optional(atom()) :: Macro.t()
+  @spec optional(atom(), atom()) :: Macro.t()
+  @spec optional(atom(), atom(), opts()) :: Macro.t()
+  defmacro optional(name, type \\ :any, opts \\ [])
+
+  defmacro optional(name, type, opts) when type in [:map, {:array, :map}] do
+    children = get_field_children(opts)
 
     quote do
-      if unquote(fields) != [] do
-        properties =
-          Enum.reduce(unquote(fields), %{}, fn item, acc ->
-            if is_map(item) do
-              Map.merge(acc, item)
-            else
-              acc
-            end
-          end)
+      properties = Enum.reduce(unquote(children), %{}, &Map.merge(&2, &1))
 
-        Goal.generate_field(:optional, unquote(name), unquote(type), properties: properties)
-      else
-        Goal.generate_field(:optional, unquote(name), unquote(type), unquote(opts))
-      end
+      %{unquote(name) => [{:type, unquote(type)} | [properties: properties]]}
     end
   end
 
-  defmacro required(name, type \\ :any, opts \\ []) do
-    fields =
-      if type in [:map, {:array, :map}] do
-        case block_or_tuple = Keyword.get(opts, :do) do
-          {:__block__, _, contents} -> contents
-          {_, _, _} -> [block_or_tuple]
-        end
-      else
-        []
-      end
+  defmacro optional(name, type, opts) do
+    quote do
+      %{unquote(name) => [{:type, unquote(type)} | unquote(opts)]}
+    end
+  end
+
+  @doc """
+  Defines a required field in the schema.
+  """
+  @spec required(atom()) :: Macro.t()
+  @spec required(atom(), atom()) :: Macro.t()
+  @spec required(atom(), atom(), opts()) :: Macro.t()
+  defmacro required(name, type \\ :any, opts \\ [])
+
+  defmacro required(name, type, opts) when type in [:map, {:array, :map}] do
+    children = get_field_children(opts)
 
     quote do
-      if unquote(fields) != [] do
-        properties =
-          Enum.reduce(unquote(fields), %{}, fn item, acc ->
-            if is_map(item) do
-              Map.merge(acc, item)
-            else
-              acc
-            end
-          end)
+      properties = Enum.reduce(unquote(children), %{}, &Map.merge(&2, &1))
 
-        Goal.generate_field(:required, unquote(name), unquote(type), properties: properties)
-      else
-        Goal.generate_field(:required, unquote(name), unquote(type), unquote(opts))
-      end
+      %{
+        unquote(name) => [{:type, unquote(type)} | [{:required, true} | [properties: properties]]]
+      }
+    end
+  end
+
+  defmacro required(name, type, opts) do
+    quote do
+      %{unquote(name) => [{:type, unquote(type)} | [{:required, true} | unquote(opts)]]}
+    end
+  end
+
+  defp get_field_children(opts) do
+    case block_or_tuple = Keyword.get(opts, :do) do
+      {:__block__, _, contents} -> contents
+      {_, _, _} -> [block_or_tuple]
     end
   end
 
@@ -553,6 +552,7 @@ defmodule Goal do
       {:error, %Ecto.Changeset{valid?: false, errors: [email: {"has invalid format", ...}]}}
 
   """
+  @spec validate_params(schema(), params()) :: {:ok, params()} | {:error, changeset()}
   @spec validate_params(schema(), params(), opts()) :: {:ok, params()} | {:error, changeset()}
   def validate_params(schema, params, opts \\ []) do
     params = recase_keys(schema, params, opts)
@@ -659,15 +659,6 @@ defmodule Goal do
           (error() -> binary()) | (changeset(), atom(), error() -> binary())
         ) :: %{atom() => [term()]}
   defdelegate traverse_errors(changeset, msg_func), to: Goal.Changeset
-
-  # TODO: Move this content to the main function
-  def generate_field(:optional, field, type, options) do
-    %{field => [{:type, type} | options]}
-  end
-
-  def generate_field(:required, field, type, options) do
-    %{field => [{:type, type} | [{:required, true} | options]]}
-  end
 
   @doc """
   TODO: Add documentation.
