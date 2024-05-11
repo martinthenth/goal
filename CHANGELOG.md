@@ -3,8 +3,14 @@
 - Graduates the library to version 1.0.0 🎉
 - Adds support for passing attribute tags to the schema
 - Removes the custom types inside the macro because they can conflict with user-defined types
-- TO DO: Remove custom regex config option
 - TO DO: Add benchmarks
+- TO DO: Update documentation
+
+Migration instructions:
+
+1. If you used Goal's types that were included in the macro:
+   a. Replace those types with your own types.
+   b. The compiler will let you know if there are were any references.
 
 # 0.3.3
 
