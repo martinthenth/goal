@@ -660,46 +660,6 @@ defmodule Goal do
         ) :: %{atom() => [term()]}
   defdelegate traverse_errors(changeset, msg_func), to: Goal.Changeset
 
-  @doc """
-  TODO: Add documentation.
-  This function is public so it can be accessed from the local macro usage
-  """
-  def generate_schema({:optional, _lines, [field, type, options]})
-      when type in [:map, {:array, :map}] do
-    if block_or_function = Keyword.get(options, :do) do
-      properties = generate_schema(block_or_function)
-      clean_options = Keyword.delete(options, :do)
-
-      %{field => [{:type, type} | [{:properties, properties} | clean_options]]}
-    else
-      %{field => [{:type, type} | options]}
-    end
-  end
-
-  def generate_schema({:optional, _lines, [field, type, options]}) do
-    %{field => [{:type, type} | options]}
-  end
-
-  def generate_schema({:required, _lines, [field, type, options]})
-      when type in [:map, {:array, :map}] do
-    if block_or_function = Keyword.get(options, :do) do
-      properties = generate_schema(block_or_function)
-      clean_options = Keyword.delete(options, :do)
-
-      %{
-        field => [
-          {:type, type} | [{:required, true} | [{:properties, properties} | clean_options]]
-        ]
-      }
-    else
-      %{field => [{:type, type} | [{:required, true} | options]]}
-    end
-  end
-
-  def generate_schema({:required, _lines, [field, type, options]}) do
-    %{field => [{:type, type} | [{:required, true} | options]]}
-  end
-
   defp get_types(schema) do
     Enum.reduce(schema, %{}, fn {field, rules}, acc ->
       case Keyword.get(rules, :type, :any) do

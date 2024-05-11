@@ -1,11 +1,10 @@
 # 1.0.0
 
-- Graduates the library to stable version 1.0.0
-- Removes custom types inside the macro because they can conflict with user-defined types
-- TO DO: Fix attribute tag bug
+- Graduates the library to version 1.0.0 🎉
+- Adds support for passing attribute tags to the schema
+- Removes the custom types inside the macro because they can conflict with user-defined types
 - TO DO: Remove custom regex config option
-- TO DO: Check whether negative numbers work without the `Code.eval_quoted` with the new solution
-- TO DO: Add benchmark to check impact of parsing on performance in `us` or `ns`
+- TO DO: Add benchmarks
 
 # 0.3.3
 
