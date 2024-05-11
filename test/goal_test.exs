@@ -57,6 +57,12 @@ defmodule GoalTest do
     end
   end
 
+  @statuses ["draft", "pending", "done"]
+
+  defparams :enums do
+    optional(:status, :enum, values: @statuses)
+  end
+
   describe "__using__/1" do
     test "schema/0" do
       assert schema() == %{id: [type: :integer, required: true]}
@@ -68,6 +74,12 @@ defmodule GoalTest do
                b: [type: :integer, required: true, min: -5, max: -1],
                c: [type: :float, required: true, min: -14.0, max: 7],
                d: [type: :decimal, min: Decimal.new(-3), max: Decimal.new(-1)]
+             }
+    end
+
+    test "schema/1 enums" do
+      assert schema(:enums) == %{
+               status: [type: :enum, values: ["draft", "pending", "done"]]
              }
     end
 

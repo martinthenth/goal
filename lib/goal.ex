@@ -355,7 +355,19 @@ defmodule Goal do
   @spec __using__(block()) :: any()
   defmacro __using__(_) do
     quote do
-      import Goal, only: [defparams: 1, defparams: 2, build_changeset: 2, recase_keys: 3]
+      import Goal,
+        only: [
+          defparams: 1,
+          defparams: 2,
+          optional: 1,
+          optional: 2,
+          optional: 3,
+          required: 1,
+          required: 2,
+          required: 3,
+          build_changeset: 2,
+          recase_keys: 3
+        ]
 
       @doc """
       Builds a changeset from the schema and params.
@@ -420,7 +432,9 @@ defmodule Goal do
   defmacro defparams(do: block) do
     quote do
       def schema do
-        unquote(block |> generate_schema() |> Macro.escape())
+        # unquote(block |> generate_schema() |> Macro.escape())
+
+        unquote(block)
       end
     end
   end
@@ -450,8 +464,22 @@ defmodule Goal do
   defmacro defparams(name, do: block) do
     quote do
       def schema(unquote(name)) do
-        unquote(block |> generate_schema() |> Macro.escape())
+        unquote(block)
+
+        # unquote(block |> generate_schema() |> Macro.escape())
       end
+    end
+  end
+
+  defmacro optional(name, type \\ :string, opts \\ []) do
+    quote do
+      Goal.generate_schema({:optional, [], [unquote(name), unquote(type), unquote(opts)]})
+    end
+  end
+
+  defmacro required(name, type \\ :string, opts \\ []) do
+    quote do
+      Goal.generate_schema({:required, [], [unquote(name), unquote(type), unquote(opts)]})
     end
   end
 
@@ -574,28 +602,28 @@ defmodule Goal do
         ) :: %{atom() => [term()]}
   defdelegate traverse_errors(changeset, msg_func), to: Goal.Changeset
 
-  defp generate_schema({:__block__, _lines, contents}) do
+  def generate_schema({:__block__, _lines, contents}) do
     Enum.reduce(contents, %{}, fn function, acc ->
       Map.merge(acc, generate_schema(function))
     end)
   end
 
-  defp generate_schema({:optional, _lines, [field]}) do
-    %{field => [{:type, :any}]}
-  end
+  # def generate_schema({:optional, _lines, [field]}) do
+  #   %{field => [{:type, :any}]}
+  # end
 
-  defp generate_schema({:optional, _lines, [field, type]}) do
-    %{field => [{:type, type}]}
-  end
+  # def generate_schema({:optional, _lines, [field, type]}) do
+  #   %{field => [{:type, type}]}
+  # end
 
-  defp generate_schema({:optional, _lines, [field, type, options]})
-       when type in [:integer, :float, :decimal] do
-    {new_options, _} = Code.eval_quoted(options)
-    %{field => [{:type, type} | new_options]}
-  end
+  # def generate_schema({:optional, _lines, [field, type, options]})
+  #     when type in [:integer, :float, :decimal] do
+  #   # {new_options, _} = Code.eval_quoted(options)
+  #   %{field => [{:type, type} | options]}
+  # end
 
-  defp generate_schema({:optional, _lines, [field, type, options]})
-       when type in [:map, {:array, :map}] do
+  def generate_schema({:optional, _lines, [field, type, options]})
+      when type in [:map, {:array, :map}] do
     if block_or_function = Keyword.get(options, :do) do
       properties = generate_schema(block_or_function)
       clean_options = Keyword.delete(options, :do)
@@ -606,26 +634,26 @@ defmodule Goal do
     end
   end
 
-  defp generate_schema({:optional, _lines, [field, type, options]}) do
+  def generate_schema({:optional, _lines, [field, type, options]}) do
     %{field => [{:type, type} | options]}
   end
 
-  defp generate_schema({:required, _lines, [field]}) do
-    %{field => [{:type, :any}, {:required, true}]}
-  end
+  # def generate_schema({:required, _lines, [field]}) do
+  #   %{field => [{:type, :any}, {:required, true}]}
+  # end
 
-  defp generate_schema({:required, _lines, [field, type]}) do
-    %{field => [{:type, type}, {:required, true}]}
-  end
+  # def generate_schema({:required, _lines, [field, type]}) do
+  #   %{field => [{:type, type}, {:required, true}]}
+  # end
 
-  defp generate_schema({:required, _lines, [field, type, options]})
-       when type in [:integer, :float, :decimal] do
-    {new_options, _} = Code.eval_quoted(options)
-    %{field => [{:type, type} | [{:required, true} | new_options]]}
-  end
+  # def generate_schema({:required, _lines, [field, type, options]})
+  #     when type in [:integer, :float, :decimal] do
+  #   {new_options, _} = Code.eval_quoted(options)
+  #   %{field => [{:type, type} | [{:required, true} | new_options]]}
+  # end
 
-  defp generate_schema({:required, _lines, [field, type, options]})
-       when type in [:map, {:array, :map}] do
+  def generate_schema({:required, _lines, [field, type, options]})
+      when type in [:map, {:array, :map}] do
     if block_or_function = Keyword.get(options, :do) do
       properties = generate_schema(block_or_function)
       clean_options = Keyword.delete(options, :do)
@@ -640,7 +668,7 @@ defmodule Goal do
     end
   end
 
-  defp generate_schema({:required, _lines, [field, type, options]}) do
+  def generate_schema({:required, _lines, [field, type, options]}) do
     %{field => [{:type, type} | [{:required, true} | options]]}
   end
 
