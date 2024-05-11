@@ -590,18 +590,12 @@ defmodule Goal do
 
   defp generate_schema({:optional, _lines, [field, type, options]})
        when type in [:integer, :float, :decimal] do
-    if block_or_function = Keyword.get(options, :do) do
-      properties = generate_schema(block_or_function)
-      clean_options = Keyword.delete(options, :do)
-
-      %{field => [{:type, type} | [{:properties, properties} | clean_options]]}
-    else
-      {new_options, _} = Code.eval_quoted(options)
-      %{field => [{:type, type} | new_options]}
-    end
+    {new_options, _} = Code.eval_quoted(options)
+    %{field => [{:type, type} | new_options]}
   end
 
-  defp generate_schema({:optional, _lines, [field, type, options]}) do
+  defp generate_schema({:optional, _lines, [field, type, options]})
+       when type in [:map, {:array, :map}] do
     if block_or_function = Keyword.get(options, :do) do
       properties = generate_schema(block_or_function)
       clean_options = Keyword.delete(options, :do)
@@ -610,6 +604,10 @@ defmodule Goal do
     else
       %{field => [{:type, type} | options]}
     end
+  end
+
+  defp generate_schema({:optional, _lines, [field, type, options]}) do
+    %{field => [{:type, type} | options]}
   end
 
   defp generate_schema({:required, _lines, [field]}) do
@@ -622,22 +620,12 @@ defmodule Goal do
 
   defp generate_schema({:required, _lines, [field, type, options]})
        when type in [:integer, :float, :decimal] do
-    if block_or_function = Keyword.get(options, :do) do
-      properties = generate_schema(block_or_function)
-      clean_options = Keyword.delete(options, :do)
-
-      %{
-        field => [
-          {:type, type} | [{:required, true} | [{:properties, properties} | clean_options]]
-        ]
-      }
-    else
-      {new_options, _} = Code.eval_quoted(options)
-      %{field => [{:type, type} | [{:required, true} | new_options]]}
-    end
+    {new_options, _} = Code.eval_quoted(options)
+    %{field => [{:type, type} | [{:required, true} | new_options]]}
   end
 
-  defp generate_schema({:required, _lines, [field, type, options]}) do
+  defp generate_schema({:required, _lines, [field, type, options]})
+       when type in [:map, {:array, :map}] do
     if block_or_function = Keyword.get(options, :do) do
       properties = generate_schema(block_or_function)
       clean_options = Keyword.delete(options, :do)
@@ -650,6 +638,10 @@ defmodule Goal do
     else
       %{field => [{:type, type} | [{:required, true} | options]]}
     end
+  end
+
+  defp generate_schema({:required, _lines, [field, type, options]}) do
+    %{field => [{:type, type} | [{:required, true} | options]]}
   end
 
   defp get_types(schema) do
