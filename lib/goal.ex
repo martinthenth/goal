@@ -667,7 +667,7 @@ defmodule Goal do
           values =
             rules
             |> Keyword.get(:values, [])
-            |> Enum.map(&String.to_atom/1)
+            |> Enum.map(&atomize/1)
 
           Map.put(acc, field, {:parameterized, Ecto.Enum, Ecto.Enum.init(values: values)})
 
@@ -907,6 +907,9 @@ defmodule Goal do
         {:valid, changeset}
     end
   end
+
+  defp atomize(atom) when is_atom(atom), do: atom
+  defp atomize(string) when is_binary(string), do: String.to_atom(string)
 
   defp is_atom_map?(map) when is_map(map) do
     Enum.reduce_while(map, false, fn {key, _value}, _acc -> {:halt, is_atom(key)} end)

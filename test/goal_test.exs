@@ -4,6 +4,8 @@ defmodule GoalTest do
 
   import Goal.Helpers
 
+  @statuses [:draft, :pending, :done]
+
   defparams do
     required(:id, :integer)
   end
@@ -31,6 +33,7 @@ defmodule GoalTest do
     optional(:type, :string, squish: true)
     optional(:age, :integer, min: 0, max: 120)
     optional(:gender, :enum, values: ["female", "male", "non-binary"])
+    optional(:status, :enum, values: @statuses)
     optional(:hash, :string, format: :hash)
 
     required :car, :map do
@@ -57,8 +60,6 @@ defmodule GoalTest do
     end
   end
 
-  @statuses ["draft", "pending", "done"]
-
   defparams :enums do
     optional(:status, :enum, values: @statuses)
   end
@@ -79,7 +80,7 @@ defmodule GoalTest do
 
     test "schema/1 enums" do
       assert schema(:enums) == %{
-               status: [type: :enum, values: ["draft", "pending", "done"]]
+               status: [type: :enum, values: [:draft, :pending, :done]]
              }
     end
 
@@ -100,6 +101,7 @@ defmodule GoalTest do
                type: [type: :string, squish: true],
                age: [type: :integer, min: 0, max: 120],
                gender: [type: :enum, values: ["female", "male", "non-binary"]],
+               status: [type: :enum, values: [:draft, :pending, :done]],
                hash: [type: :string, format: :hash],
                car: [
                  type: :map,
@@ -842,6 +844,38 @@ defmodule GoalTest do
 
       assert changes_on(changeset_1) == %{money: Decimal.from_float(4.99)}
       assert errors_on(changeset_2) == %{money: ["must be less than or equal to 5.01"]}
+    end
+
+    test "enum, atom-based" do
+      schema = %{status: [type: :enum, values: [:active, :inactive]]}
+
+      data_1 = %{"status" => "active"}
+      data_2 = %{"status" => "busy"}
+      data_3 = %{"status" => :active}
+      data_4 = %{"status" => :busy}
+
+      changeset_1 = Goal.build_changeset(schema, data_1)
+      changeset_2 = Goal.build_changeset(schema, data_2)
+      changeset_3 = Goal.build_changeset(schema, data_3)
+      changeset_4 = Goal.build_changeset(schema, data_4)
+
+      assert changes_on(changeset_1) == %{status: :active}
+      assert errors_on(changeset_2) == %{status: ["is invalid"]}
+      assert changes_on(changeset_3) == %{status: :active}
+      assert errors_on(changeset_4) == %{status: ["is invalid"]}
+    end
+
+    test "enum, string-based" do
+      schema = %{status: [type: :enum, values: ["active", "inactive"]]}
+
+      data_1 = %{"status" => "active"}
+      data_2 = %{"status" => "busy"}
+
+      changeset_1 = Goal.build_changeset(schema, data_1)
+      changeset_2 = Goal.build_changeset(schema, data_2)
+
+      assert changes_on(changeset_1) == %{status: :active}
+      assert errors_on(changeset_2) == %{status: ["is invalid"]}
     end
 
     test "map" do
