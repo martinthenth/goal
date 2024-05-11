@@ -1,3 +1,9 @@
+# 1.0.0
+
+- Graduates the library to stable version 1.0.0
+- Removes custom types inside the macro because they can conflict with user-defined types
+- ...
+
 # 0.3.3
 
 - Fixes a bug with validations for negative numbers (https://github.com/martinthenth/goal/pull/88 - by [@Joraeuw](https://github.com/Joraeuw))
