@@ -395,6 +395,8 @@ defmodule Goal do
       Returns the validated parameters or an error changeset.
       Expects a schema to be defined with `defparams`.
       """
+      @spec validate(atom() | binary()) :: {:ok, map()} | {:error, Ecto.Changeset.t()}
+      @spec validate(atom() | binary(), map()) :: {:ok, map()} | {:error, Ecto.Changeset.t()}
       @spec validate(atom() | binary(), map(),
               recase_keys: [from: :camel_case | :snake_case | :pascal_case | :kebab_case]
             ) ::
@@ -537,6 +539,7 @@ defmodule Goal do
     case block_or_tuple = Keyword.get(opts, :do) do
       {:__block__, _, contents} -> contents
       {_, _, _} -> [block_or_tuple]
+      _ -> []
     end
   end
 
@@ -601,6 +604,7 @@ defmodule Goal do
 
   Supported are `:camel_case`, `:pascal_case`, `:kebab_case` and `:snake_case`.
   """
+  @spec recase_keys(params()) :: params()
   @spec recase_keys(params(), opts()) :: params()
   def recase_keys(params, opts \\ []) do
     settings = Keyword.get(opts, :recase_keys) || Application.get_env(:goal, :recase_keys)

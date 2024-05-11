@@ -3,8 +3,8 @@
 - Graduates the library to version 1.0.0 🎉
 - Adds support for passing attribute tags to the schema
 - Removes the custom types inside the macro because they can conflict with user-defined types
-- TO DO: Add benchmarks
-- TO DO: Update documentation
+- Adds benchmarks script and results to the documentation
+- TO DO: Update documentation (including goal.ex!)
 
 Migration instructions:
 
