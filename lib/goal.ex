@@ -357,17 +357,14 @@ defmodule Goal do
     quote do
       import Goal, only: [defparams: 1, defparams: 2, build_changeset: 2, recase_keys: 3]
 
-      @typedoc false
-      @type goal_opts :: [
-              recase_keys: [from: :camel_case | :snake_case | :pascal_case | :kebab_case]
-            ]
-
       @doc """
       Builds a changeset from the schema and params.
       """
       @spec changeset(atom() | binary()) :: Ecto.Changeset.t()
       @spec changeset(atom() | binary(), map()) :: Ecto.Changeset.t()
-      @spec changeset(atom() | binary(), map(), goal_opts()) :: Ecto.Changeset.t()
+      @spec changeset(atom() | binary(), map(),
+              recase_keys: [from: :camel_case | :snake_case | :pascal_case | :kebab_case]
+            ) :: Ecto.Changeset.t()
       def changeset(name, params \\ %{}, opts \\ []) do
         schema = schema(name)
         params = recase_keys(schema, params, opts)
@@ -386,7 +383,9 @@ defmodule Goal do
       Returns the validated parameters or an error changeset.
       Expects a schema to be defined with `defparams`.
       """
-      @spec validate(atom() | binary(), map(), goal_opts()) ::
+      @spec validate(atom() | binary(), map(),
+              recase_keys: [from: :camel_case | :snake_case | :pascal_case | :kebab_case]
+            ) ::
               {:ok, map()}
               | {:error, Ecto.Changeset.t()}
       def validate(name, params \\ %{}, opts \\ []) do
