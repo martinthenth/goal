@@ -430,11 +430,17 @@ defmodule Goal do
   """
   @spec defparams(do_block()) :: any
   defmacro defparams(do: block) do
+    fields =
+      case block do
+        {:__block__, _, contents} -> contents
+        {_, _, _} -> [block]
+      end
+
     quote do
       def schema do
-        # unquote(block |> generate_schema() |> Macro.escape())
-
-        unquote(block)
+        Enum.reduce(unquote(fields), %{}, fn item, acc ->
+          Map.merge(acc, item)
+        end)
       end
     end
   end
@@ -462,24 +468,76 @@ defmodule Goal do
   """
   @spec defparams(name(), do_block()) :: any
   defmacro defparams(name, do: block) do
+    fields =
+      case block do
+        {:__block__, _, contents} -> contents
+        {_, _, _} -> [block]
+      end
+
     quote do
       def schema(unquote(name)) do
-        unquote(block)
-
-        # unquote(block |> generate_schema() |> Macro.escape())
+        Enum.reduce(unquote(fields), %{}, fn item, acc ->
+          Map.merge(acc, item)
+        end)
       end
     end
   end
 
-  defmacro optional(name, type \\ :string, opts \\ []) do
+  defmacro optional(name, type \\ :any, opts \\ []) do
+    fields =
+      if type in [:map, {:array, :map}] do
+        case block_or_tuple = Keyword.get(opts, :do) do
+          {:__block__, _, contents} -> contents
+          {_, _, _} -> [block_or_tuple]
+        end
+      else
+        []
+      end
+
     quote do
-      Goal.generate_schema({:optional, [], [unquote(name), unquote(type), unquote(opts)]})
+      if unquote(fields) != [] do
+        properties =
+          Enum.reduce(unquote(fields), %{}, fn item, acc ->
+            if is_map(item) do
+              Map.merge(acc, item)
+            else
+              acc
+            end
+          end)
+
+        Goal.generate_field(:optional, unquote(name), unquote(type), properties: properties)
+      else
+        Goal.generate_field(:optional, unquote(name), unquote(type), unquote(opts))
+      end
     end
   end
 
-  defmacro required(name, type \\ :string, opts \\ []) do
+  defmacro required(name, type \\ :any, opts \\ []) do
+    fields =
+      if type in [:map, {:array, :map}] do
+        case block_or_tuple = Keyword.get(opts, :do) do
+          {:__block__, _, contents} -> contents
+          {_, _, _} -> [block_or_tuple]
+        end
+      else
+        []
+      end
+
     quote do
-      Goal.generate_schema({:required, [], [unquote(name), unquote(type), unquote(opts)]})
+      if unquote(fields) != [] do
+        properties =
+          Enum.reduce(unquote(fields), %{}, fn item, acc ->
+            if is_map(item) do
+              Map.merge(acc, item)
+            else
+              acc
+            end
+          end)
+
+        Goal.generate_field(:required, unquote(name), unquote(type), properties: properties)
+      else
+        Goal.generate_field(:required, unquote(name), unquote(type), unquote(opts))
+      end
     end
   end
 
@@ -602,26 +660,19 @@ defmodule Goal do
         ) :: %{atom() => [term()]}
   defdelegate traverse_errors(changeset, msg_func), to: Goal.Changeset
 
-  def generate_schema({:__block__, _lines, contents}) do
-    Enum.reduce(contents, %{}, fn function, acc ->
-      Map.merge(acc, generate_schema(function))
-    end)
+  # TODO: Move this content to the main function
+  def generate_field(:optional, field, type, options) do
+    %{field => [{:type, type} | options]}
   end
 
-  # def generate_schema({:optional, _lines, [field]}) do
-  #   %{field => [{:type, :any}]}
-  # end
+  def generate_field(:required, field, type, options) do
+    %{field => [{:type, type} | [{:required, true} | options]]}
+  end
 
-  # def generate_schema({:optional, _lines, [field, type]}) do
-  #   %{field => [{:type, type}]}
-  # end
-
-  # def generate_schema({:optional, _lines, [field, type, options]})
-  #     when type in [:integer, :float, :decimal] do
-  #   # {new_options, _} = Code.eval_quoted(options)
-  #   %{field => [{:type, type} | options]}
-  # end
-
+  @doc """
+  TODO: Add documentation.
+  This function is public so it can be accessed from the local macro usage
+  """
   def generate_schema({:optional, _lines, [field, type, options]})
       when type in [:map, {:array, :map}] do
     if block_or_function = Keyword.get(options, :do) do
@@ -637,20 +688,6 @@ defmodule Goal do
   def generate_schema({:optional, _lines, [field, type, options]}) do
     %{field => [{:type, type} | options]}
   end
-
-  # def generate_schema({:required, _lines, [field]}) do
-  #   %{field => [{:type, :any}, {:required, true}]}
-  # end
-
-  # def generate_schema({:required, _lines, [field, type]}) do
-  #   %{field => [{:type, type}, {:required, true}]}
-  # end
-
-  # def generate_schema({:required, _lines, [field, type, options]})
-  #     when type in [:integer, :float, :decimal] do
-  #   {new_options, _} = Code.eval_quoted(options)
-  #   %{field => [{:type, type} | [{:required, true} | new_options]]}
-  # end
 
   def generate_schema({:required, _lines, [field, type, options]})
       when type in [:map, {:array, :map}] do
