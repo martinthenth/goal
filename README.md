@@ -28,7 +28,7 @@ end
 
 Goal can be used with LiveViews and JSON and HTML controllers.
 
-### Example with JSON controllers
+### Example with JSON and HTTP controllers
 
 With JSON and HTML-based APIs, Goal takes the `params` from a controller action, validates those
 against a validation schema using `validate/3`, and returns an atom-based map or an error
@@ -62,10 +62,6 @@ defmodule AppWeb.SomeController do
   end
 end
 ```
-
-### Example with HTTP controllers
-
-TO DO
 
 ### Example with LiveViews
 
@@ -118,7 +114,28 @@ end
 
 ### Example with GraphQL resolvers
 
-TO DO
+With GraphQL, you may want to validate input fields without marking them as `non-null` to enhance
+backward compatibility. You can use Goal inside GraphQL resolvers to validate the input fields:
+
+```elixir
+defmodule AppWeb.MyResolver do
+  use Goal
+
+  defparams(:create_user) do
+    required(:id, :uuid)
+    required(:input, :map) do
+      required(:first_name, :string)
+      required(:last_name, :string)
+    end
+  end
+
+  def create_user(args, info) do
+    with {:ok, attrs} <- validate(:create_user) do
+      ...
+    end
+  end
+end
+```
 
 ### Example with isolated schemas
 
