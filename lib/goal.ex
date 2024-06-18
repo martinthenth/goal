@@ -20,9 +20,7 @@ defmodule Goal do
 
   ```elixir
   def deps do
-    [
-      {:goal, "~> 0.2"}
-    ]
+    [{:goal, "~> 1.0"}]
   end
   ```
 
@@ -30,15 +28,15 @@ defmodule Goal do
 
   Goal can be used with LiveViews and JSON and HTML controllers.
 
-  ### Example with controllers
+  ### Example with JSON and HTTP controllers
 
   With JSON and HTML-based APIs, Goal takes the `params` from a controller action, validates those
   against a validation schema using `validate/3`, and returns an atom-based map or an error
   changeset.
 
   ```elixir
-  defmodule MyApp.SomeController do
-    use MyApp, :controller
+  defmodule AppWeb.SomeController do
+    use AppWeb, :controller
     use Goal
 
     def create(conn, params) do
@@ -71,8 +69,8 @@ defmodule Goal do
   returns an atom-based map or an error changeset.
 
   ```elixir
-  defmodule MyApp.SomeLiveView do
-    use MyApp, :live_view
+  defmodule AppWeb.SomeLiveView do
+    use AppWeb, :live_view
     use Goal
 
     def mount(params, _session, socket) do
@@ -112,12 +110,37 @@ defmodule Goal do
   end
   ```
 
-  ### Example with isolated schemas
+  ### Example with GraphQL resolvers
 
-  Validation schemas can be defined in a separate namespace, for example `MyAppWeb.MySchema`:
+  With GraphQL, you may want to validate input fields without marking them as `non-null` to enhance
+  backward compatibility. You can use Goal inside GraphQL resolvers to validate the input fields:
 
   ```elixir
-  defmodule MyAppWeb.MySchema do
+  defmodule AppWeb.MyResolver do
+    use Goal
+
+    defparams(:create_user) do
+      required(:id, :uuid)
+      required(:input, :map) do
+        required(:first_name, :string)
+        required(:last_name, :string)
+      end
+    end
+
+    def create_user(args, info) do
+      with {:ok, attrs} <- validate(:create_user) do
+        ...
+      end
+    end
+  end
+  ```
+
+  ### Example with isolated schemas
+
+  Validation schemas can be defined in a separate namespace, for example `AppWeb.MySchema`:
+
+  ```elixir
+  defmodule AppWeb.MySchema do
     use Goal
 
     defparams :show do
@@ -126,10 +149,10 @@ defmodule Goal do
     end
   end
 
-  defmodule MyApp.SomeController do
-    use MyApp, :controller
+  defmodule AppWeb.SomeController do
+    use AppWeb, :controller
 
-    alias MyAppWeb.MySchema
+    alias AppWeb.MySchema
 
     def show(conn, params) do
       with {:ok, attrs} <- MySchema.validate(:show, params) do
@@ -235,7 +258,7 @@ defmodule Goal do
   config :goal,
     recase_keys: [to: :camel_case]
 
-  defmodule MyAppWeb.UserJSON do
+  defmodule AppWeb.UserJSON do
     import Goal
 
     def show(%{user: user}) do
@@ -314,6 +337,54 @@ defmodule Goal do
   All field types, excluding `:map` and `{:array, :map}`, can use `:equals`, `:subset`,
   `:included`, `:excluded` validations.
 
+  ## Benchmarks
+
+  Run `mix deps.get` and then `mix run scripts/bench.exs` to run the benchmark on your computer.
+
+  ```zsh
+  Operating System: macOS
+  CPU Information: Apple M2 Pro
+  Number of Available Cores: 10
+  Available memory: 16 GB
+  Elixir 1.16.2
+  Erlang 26.2.1
+  JIT enabled: true
+
+  Benchmark suite executing with the following configuration:
+  warmup: 5 s
+  time: 10 s
+  memory time: 5 s
+  reduction time: 0 ns
+  parallel: 1
+  inputs: none specified
+  Estimated total run time: 1 min 40 s
+
+  Name                                       ips        average  deviation         median         99th %
+  presence params (4 fields)            702.67 K        1.42 μs  ±1370.44%        1.29 μs        1.63 μs
+  simple params (4 fields)              339.92 K        2.94 μs   ±367.42%        2.67 μs        4.96 μs
+  flat params (12 fields)               115.59 K        8.65 μs    ±79.41%        8.04 μs       21.08 μs
+  nested params (12 fields)             110.47 K        9.05 μs    ±88.77%        8.38 μs       39.88 μs
+  deeply nested params (12 fields)      107.88 K        9.27 μs    ±85.37%        8.33 μs       40.58 μs
+
+  Comparison:
+  presence params (4 fields)            702.67 K
+  simple params (4 fields)              339.92 K - 2.07x slower +1.52 μs
+  flat params (12 fields)               115.59 K - 6.08x slower +7.23 μs
+  nested params (12 fields)             110.47 K - 6.36x slower +7.63 μs
+  deeply nested params (12 fields)      107.88 K - 6.51x slower +7.85 μs
+
+  Memory usage statistics:
+
+  Name                                Memory usage
+  presence params (4 fields)               4.76 KB
+  simple params (4 fields)                 7.95 KB - 1.67x memory usage +3.19 KB
+  flat params (12 fields)                 25.36 KB - 5.33x memory usage +20.60 KB
+  nested params (12 fields)               27.49 KB - 5.78x memory usage +22.73 KB
+  deeply nested params (12 fields)        27.38 KB - 5.75x memory usage +22.62 KB
+
+  **All measurements for memory usage were the same**
+  ```
+
   ## Credits
 
   This library is based on [Ecto](https://github.com/elixir-ecto/ecto) and I had to copy and adapt
@@ -355,27 +426,28 @@ defmodule Goal do
   @spec __using__(block()) :: any()
   defmacro __using__(_) do
     quote do
-      import Goal, only: [defparams: 1, defparams: 2, build_changeset: 2, recase_keys: 3]
-
-      @typedoc false
-      @type name :: atom() | binary()
-
-      @typedoc false
-      @type params :: map()
-
-      @typedoc false
-      @type cases :: :camel_case | :snake_case | :pascal_case | :kebab_case
-
-      @typedoc false
-      @type opts :: [recase_keys: [from: cases()]]
-
-      @typedoc false
-      @type changeset :: Changeset.t()
+      import Goal,
+        only: [
+          defparams: 1,
+          defparams: 2,
+          optional: 1,
+          optional: 2,
+          optional: 3,
+          required: 1,
+          required: 2,
+          required: 3,
+          build_changeset: 2,
+          recase_keys: 3
+        ]
 
       @doc """
       Builds a changeset from the schema and params.
       """
-      @spec changeset(name(), params()) :: changeset()
+      @spec changeset(atom() | binary()) :: Ecto.Changeset.t()
+      @spec changeset(atom() | binary(), map()) :: Ecto.Changeset.t()
+      @spec changeset(atom() | binary(), map(),
+              recase_keys: [from: :camel_case | :snake_case | :pascal_case | :kebab_case]
+            ) :: Ecto.Changeset.t()
       def changeset(name, params \\ %{}, opts \\ []) do
         schema = schema(name)
         params = recase_keys(schema, params, opts)
@@ -386,7 +458,7 @@ defmodule Goal do
       @doc """
       Returns the validated parameters or an error changeset.
       """
-      @spec validate(changeset()) :: {:ok, params()} | {:error, changeset()}
+      @spec validate(Ecto.Changeset.t()) :: {:ok, map()} | {:error, Ecto.Changeset.t()}
       def validate(%Changeset{valid?: true, changes: changes}), do: {:ok, changes}
       def validate(%Changeset{valid?: false} = changeset), do: {:error, changeset}
 
@@ -394,7 +466,13 @@ defmodule Goal do
       Returns the validated parameters or an error changeset.
       Expects a schema to be defined with `defparams`.
       """
-      @spec validate(name(), params(), opts()) :: {:ok, params()} | {:error, changeset()}
+      @spec validate(atom() | binary()) :: {:ok, map()} | {:error, Ecto.Changeset.t()}
+      @spec validate(atom() | binary(), map()) :: {:ok, map()} | {:error, Ecto.Changeset.t()}
+      @spec validate(atom() | binary(), map(),
+              recase_keys: [from: :camel_case | :snake_case | :pascal_case | :kebab_case]
+            ) ::
+              {:ok, map()}
+              | {:error, Ecto.Changeset.t()}
       def validate(name, params \\ %{}, opts \\ []) do
         schema = schema(name)
         params = recase_keys(schema, params, opts)
@@ -425,9 +503,17 @@ defmodule Goal do
   """
   @spec defparams(do_block()) :: any
   defmacro defparams(do: block) do
+    fields =
+      case block do
+        {:__block__, _, contents} -> contents
+        {_, _, _} -> [block]
+      end
+
     quote do
       def schema do
-        unquote(block |> generate_schema() |> Macro.escape())
+        Enum.reduce(unquote(fields), %{}, fn item, acc ->
+          Map.merge(acc, item)
+        end)
       end
     end
   end
@@ -455,10 +541,76 @@ defmodule Goal do
   """
   @spec defparams(name(), do_block()) :: any
   defmacro defparams(name, do: block) do
+    fields =
+      case block do
+        {:__block__, _, contents} -> contents
+        {_, _, _} -> [block]
+      end
+
     quote do
       def schema(unquote(name)) do
-        unquote(block |> generate_schema() |> Macro.escape())
+        Enum.reduce(unquote(fields), %{}, fn item, acc ->
+          Map.merge(acc, item)
+        end)
       end
+    end
+  end
+
+  @doc """
+  Defines an optional field in the schema.
+  """
+  @spec optional(atom()) :: Macro.t()
+  @spec optional(atom(), atom()) :: Macro.t()
+  @spec optional(atom(), atom(), opts()) :: Macro.t()
+  defmacro optional(name, type \\ :any, opts \\ [])
+
+  defmacro optional(name, type, opts) when type in [:map, {:array, :map}] do
+    children = get_field_children(opts)
+
+    quote do
+      properties = Enum.reduce(unquote(children), %{}, &Map.merge(&2, &1))
+
+      %{unquote(name) => [{:type, unquote(type)} | [properties: properties]]}
+    end
+  end
+
+  defmacro optional(name, type, opts) do
+    quote do
+      %{unquote(name) => [{:type, unquote(type)} | unquote(opts)]}
+    end
+  end
+
+  @doc """
+  Defines a required field in the schema.
+  """
+  @spec required(atom()) :: Macro.t()
+  @spec required(atom(), atom()) :: Macro.t()
+  @spec required(atom(), atom(), opts()) :: Macro.t()
+  defmacro required(name, type \\ :any, opts \\ [])
+
+  defmacro required(name, type, opts) when type in [:map, {:array, :map}] do
+    children = get_field_children(opts)
+
+    quote do
+      properties = Enum.reduce(unquote(children), %{}, &Map.merge(&2, &1))
+
+      %{
+        unquote(name) => [{:type, unquote(type)} | [{:required, true} | [properties: properties]]]
+      }
+    end
+  end
+
+  defmacro required(name, type, opts) do
+    quote do
+      %{unquote(name) => [{:type, unquote(type)} | [{:required, true} | unquote(opts)]]}
+    end
+  end
+
+  defp get_field_children(opts) do
+    case block_or_tuple = Keyword.get(opts, :do) do
+      {:__block__, _, contents} -> contents
+      {_, _, _} -> [block_or_tuple]
+      _ -> []
     end
   end
 
@@ -474,6 +626,7 @@ defmodule Goal do
       {:error, %Ecto.Changeset{valid?: false, errors: [email: {"has invalid format", ...}]}}
 
   """
+  @spec validate_params(schema(), params()) :: {:ok, params()} | {:error, changeset()}
   @spec validate_params(schema(), params(), opts()) :: {:ok, params()} | {:error, changeset()}
   def validate_params(schema, params, opts \\ []) do
     params = recase_keys(schema, params, opts)
@@ -522,6 +675,7 @@ defmodule Goal do
 
   Supported are `:camel_case`, `:pascal_case`, `:kebab_case` and `:snake_case`.
   """
+  @spec recase_keys(params()) :: params()
   @spec recase_keys(params(), opts()) :: params()
   def recase_keys(params, opts \\ []) do
     settings = Keyword.get(opts, :recase_keys) || Application.get_env(:goal, :recase_keys)
@@ -581,84 +735,6 @@ defmodule Goal do
         ) :: %{atom() => [term()]}
   defdelegate traverse_errors(changeset, msg_func), to: Goal.Changeset
 
-  defp generate_schema({:__block__, _lines, contents}) do
-    Enum.reduce(contents, %{}, fn function, acc ->
-      Map.merge(acc, generate_schema(function))
-    end)
-  end
-
-  defp generate_schema({:optional, _lines, [field]}) do
-    %{field => [{:type, :any}]}
-  end
-
-  defp generate_schema({:optional, _lines, [field, type]}) do
-    %{field => [{:type, type}]}
-  end
-
-  defp generate_schema({:optional, _lines, [field, type, options]})
-       when type in [:integer, :float, :decimal] do
-    if block_or_function = Keyword.get(options, :do) do
-      properties = generate_schema(block_or_function)
-      clean_options = Keyword.delete(options, :do)
-
-      %{field => [{:type, type} | [{:properties, properties} | clean_options]]}
-    else
-      {new_options, _} = Code.eval_quoted(options)
-      %{field => [{:type, type} | new_options]}
-    end
-  end
-
-  defp generate_schema({:optional, _lines, [field, type, options]}) do
-    if block_or_function = Keyword.get(options, :do) do
-      properties = generate_schema(block_or_function)
-      clean_options = Keyword.delete(options, :do)
-
-      %{field => [{:type, type} | [{:properties, properties} | clean_options]]}
-    else
-      %{field => [{:type, type} | options]}
-    end
-  end
-
-  defp generate_schema({:required, _lines, [field]}) do
-    %{field => [{:type, :any}, {:required, true}]}
-  end
-
-  defp generate_schema({:required, _lines, [field, type]}) do
-    %{field => [{:type, type}, {:required, true}]}
-  end
-
-  defp generate_schema({:required, _lines, [field, type, options]})
-       when type in [:integer, :float, :decimal] do
-    if block_or_function = Keyword.get(options, :do) do
-      properties = generate_schema(block_or_function)
-      clean_options = Keyword.delete(options, :do)
-
-      %{
-        field => [
-          {:type, type} | [{:required, true} | [{:properties, properties} | clean_options]]
-        ]
-      }
-    else
-      {new_options, _} = Code.eval_quoted(options)
-      %{field => [{:type, type} | [{:required, true} | new_options]]}
-    end
-  end
-
-  defp generate_schema({:required, _lines, [field, type, options]}) do
-    if block_or_function = Keyword.get(options, :do) do
-      properties = generate_schema(block_or_function)
-      clean_options = Keyword.delete(options, :do)
-
-      %{
-        field => [
-          {:type, type} | [{:required, true} | [{:properties, properties} | clean_options]]
-        ]
-      }
-    else
-      %{field => [{:type, type} | [{:required, true} | options]]}
-    end
-  end
-
   defp get_types(schema) do
     Enum.reduce(schema, %{}, fn {field, rules}, acc ->
       case Keyword.get(rules, :type, :any) do
@@ -666,7 +742,7 @@ defmodule Goal do
           values =
             rules
             |> Keyword.get(:values, [])
-            |> Enum.map(&String.to_atom/1)
+            |> Enum.map(&atomize/1)
 
           Map.put(acc, field, {:parameterized, Ecto.Enum, Ecto.Enum.init(values: values)})
 
@@ -906,6 +982,9 @@ defmodule Goal do
         {:valid, changeset}
     end
   end
+
+  defp atomize(atom) when is_atom(atom), do: atom
+  defp atomize(string) when is_binary(string), do: String.to_atom(string)
 
   defp is_atom_map?(map) when is_map(map) do
     Enum.reduce_while(map, false, fn {key, _value}, _acc -> {:halt, is_atom(key)} end)

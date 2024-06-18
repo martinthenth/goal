@@ -20,9 +20,7 @@ Add `goal` to the list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
-  [
-    {:goal, "~> 0.3"}
-  ]
+  [{:goal, "~> 1.0"}]
 end
 ```
 
@@ -30,15 +28,15 @@ end
 
 Goal can be used with LiveViews and JSON and HTML controllers.
 
-### Example with controllers
+### Example with JSON and HTTP controllers
 
 With JSON and HTML-based APIs, Goal takes the `params` from a controller action, validates those
 against a validation schema using `validate/3`, and returns an atom-based map or an error
 changeset.
 
 ```elixir
-defmodule MyApp.SomeController do
-  use MyApp, :controller
+defmodule AppWeb.SomeController do
+  use AppWeb, :controller
   use Goal
 
   def create(conn, params) do
@@ -72,8 +70,8 @@ takes the `params` from `handle_event/3`, validates those against a validation s
 returns an atom-based map or an error changeset.
 
 ```elixir
-defmodule MyApp.SomeLiveView do
-  use MyApp, :live_view
+defmodule AppWeb.SomeLiveView do
+  use AppWeb, :live_view
   use Goal
 
   def mount(params, _session, socket) do
@@ -114,12 +112,37 @@ defmodule MyApp.SomeLiveView do
 end
 ```
 
-### Example with isolated schemas
+### Example with GraphQL resolvers
 
-Validation schemas can be defined in a separate namespace, for example `MyAppWeb.MySchema`:
+With GraphQL, you may want to validate input fields without marking them as `non-null` to enhance
+backward compatibility. You can use Goal inside GraphQL resolvers to validate the input fields:
 
 ```elixir
-defmodule MyAppWeb.MySchema do
+defmodule AppWeb.MyResolver do
+  use Goal
+
+  defparams(:create_user) do
+    required(:id, :uuid)
+    required(:input, :map) do
+      required(:first_name, :string)
+      required(:last_name, :string)
+    end
+  end
+
+  def create_user(args, info) do
+    with {:ok, attrs} <- validate(:create_user) do
+      ...
+    end
+  end
+end
+```
+
+### Example with isolated schemas
+
+Validation schemas can be defined in a separate namespace, for example `AppWeb.MySchema`:
+
+```elixir
+defmodule AppWeb.MySchema do
   use Goal
 
   defparams :show do
@@ -128,10 +151,10 @@ defmodule MyAppWeb.MySchema do
   end
 end
 
-defmodule MyApp.SomeController do
-  use MyApp, :controller
+defmodule AppWeb.SomeController do
+  use AppWeb, :controller
 
-  alias MyAppWeb.MySchema
+  alias AppWeb.MySchema
 
   def show(conn, params) do
     with {:ok, attrs} <- MySchema.validate(:show, params) do
@@ -237,7 +260,7 @@ Use `recase_keys/2` to recase outbound keys. For example, in your views:
 config :goal,
   recase_keys: [to: :camel_case]
 
-defmodule MyAppWeb.UserJSON do
+defmodule AppWeb.UserJSON do
   import Goal
 
   def show(%{user: user}) do
@@ -315,6 +338,54 @@ The field types and available validations are:
 
 All field types, excluding `:map` and `{:array, :map}`, can use `:equals`, `:subset`,
 `:included`, `:excluded` validations.
+
+## Benchmarks
+
+Run `mix deps.get` and then `mix run scripts/bench.exs` to run the benchmark on your computer.
+
+```zsh
+Operating System: macOS
+CPU Information: Apple M2 Pro
+Number of Available Cores: 10
+Available memory: 16 GB
+Elixir 1.16.2
+Erlang 26.2.1
+JIT enabled: true
+
+Benchmark suite executing with the following configuration:
+warmup: 5 s
+time: 10 s
+memory time: 5 s
+reduction time: 0 ns
+parallel: 1
+inputs: none specified
+Estimated total run time: 1 min 40 s
+
+Name                                       ips        average  deviation         median         99th %
+presence params (4 fields)            702.67 K        1.42 μs  ±1370.44%        1.29 μs        1.63 μs
+simple params (4 fields)              339.92 K        2.94 μs   ±367.42%        2.67 μs        4.96 μs
+flat params (12 fields)               115.59 K        8.65 μs    ±79.41%        8.04 μs       21.08 μs
+nested params (12 fields)             110.47 K        9.05 μs    ±88.77%        8.38 μs       39.88 μs
+deeply nested params (12 fields)      107.88 K        9.27 μs    ±85.37%        8.33 μs       40.58 μs
+
+Comparison:
+presence params (4 fields)            702.67 K
+simple params (4 fields)              339.92 K - 2.07x slower +1.52 μs
+flat params (12 fields)               115.59 K - 6.08x slower +7.23 μs
+nested params (12 fields)             110.47 K - 6.36x slower +7.63 μs
+deeply nested params (12 fields)      107.88 K - 6.51x slower +7.85 μs
+
+Memory usage statistics:
+
+Name                                Memory usage
+presence params (4 fields)               4.76 KB
+simple params (4 fields)                 7.95 KB - 1.67x memory usage +3.19 KB
+flat params (12 fields)                 25.36 KB - 5.33x memory usage +20.60 KB
+nested params (12 fields)               27.49 KB - 5.78x memory usage +22.73 KB
+deeply nested params (12 fields)        27.38 KB - 5.75x memory usage +22.62 KB
+
+**All measurements for memory usage were the same**
+```
 
 ## Credits
 

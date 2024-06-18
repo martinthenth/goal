@@ -1,3 +1,16 @@
+# 1.0.0
+
+- Graduates the library to version 1.0.0 🎉
+- Adds support for passing attribute tags to the schema
+- Removes the custom types inside the macro because they can conflict with user-defined types
+- Adds benchmarks script and results to the documentation
+
+Migration instructions:
+
+1. If you used Goal's types that were included in the macro:
+   a. Replace those types with your own types.
+   b. The compiler will let you know if there are were any references.
+
 # 0.3.3
 
 - Fixes a bug with validations for negative numbers (https://github.com/martinthenth/goal/pull/88 - by [@Joraeuw](https://github.com/Joraeuw))

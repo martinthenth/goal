@@ -1,7 +1,7 @@
 defmodule Goal.MixProject do
   use Mix.Project
 
-  @version "0.3.3"
+  @version "1.0.0"
   @source_url "https://github.com/martinthenth/goal"
   @changelog_url "https://github.com/martinthenth/goal/blob/main/CHANGELOG.md"
 
@@ -28,6 +28,7 @@ defmodule Goal.MixProject do
 
   defp deps do
     [
+      {:benchee, "~> 1.0", only: :dev},
       {:ecto, "~> 3.9"},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
