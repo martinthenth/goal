@@ -1,3 +1,7 @@
+# 1.0.1
+
+- Export formatting rules for macros without parens (https://github.com/martinthenth/goal/pull/99 - by [@nelsonmestevao](https://github.com/nelsonmestevao))
+
 # 1.0.0
 
 - Graduates the library to version 1.0.0 🎉
@@ -8,8 +12,8 @@
 Migration instructions:
 
 1. If you used Goal's types that were included in the macro:
-   a. Replace those types with your own types.
-   b. The compiler will let you know if there are were any references.
+   a. Replace those types with your own types
+   b. The compiler will let you know if there are were any references
 
 # 0.3.3
 
@@ -17,7 +21,7 @@ Migration instructions:
 
 # 0.3.2
 
-- Adds support for custom regexes via the application config.
+- Adds support for custom regexes via the application config (https://github.com/martinthenth/goal/pull/84 - by [@lucca65](https://github.com/lucca65))
 
 # 0.3.1
 
