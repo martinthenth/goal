@@ -1,3 +1,7 @@
+# 1.0.2
+
+- Fixes a compatibility issue introduced with Ecto 3.12 (https://github.com/martinthenth/goal/pull/103 - by [@deolivtiago](https://github.com/deolivtiago))
+
 # 1.0.1
 
 - Export formatting rules for macros without parens (https://github.com/martinthenth/goal/pull/99 - by [@nelsonmestevao](https://github.com/nelsonmestevao))
