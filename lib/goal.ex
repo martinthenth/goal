@@ -744,7 +744,7 @@ defmodule Goal do
             |> Keyword.get(:values, [])
             |> Enum.map(&atomize/1)
 
-          Map.put(acc, field, {:parameterized, Ecto.Enum, Ecto.Enum.init(values: values)})
+          Map.put(acc, field, {:parameterized, {Ecto.Enum, Ecto.Enum.init(values: values)}})
 
         :uuid ->
           Map.put(acc, field, Ecto.UUID)
