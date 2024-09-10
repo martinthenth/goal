@@ -1,5 +1,10 @@
 # Goal
 
+[![CI](https://github.com/martinthenth/goal/actions/workflows/elixir.yml/badge.svg)](https://github.com/martinthenth/goal/actions/workflows/elixir.yml)
+[![Hex.pm](https://img.shields.io/hexpm/v/goal)](https://hex.pm/packages/goal)
+[![Hex.pm](https://img.shields.io/hexpm/dt/goal)](https://hex.pm/packages/goal)
+[![Hex.pm](https://img.shields.io/hexpm/l/goal)](https://github.com/martinthenth/goal/blob/main/LICENSE)
+
 Goal is a parameter validation library based on [Ecto](https://github.com/elixir-ecto/ecto).
 It can be used with JSON APIs, HTML controllers and LiveViews.
 
