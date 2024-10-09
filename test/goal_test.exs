@@ -1435,6 +1435,68 @@ defmodule GoalTest do
       assert errors_on(changeset) == %{name: ["should be at most 3 character(s)"]}
     end
 
+    test "list with enums, string-based" do
+      schema = %{
+        list: [type: {:array, :enum}, required: true, rules: [values: ["active", "inactive"]]]
+      }
+
+      changeset_1 = Goal.build_changeset(schema, %{"list" => ["active", "inactive"]})
+      assert changes_on(changeset_1) == %{list: [:active, :inactive]}
+
+      changeset_2 = Goal.build_changeset(schema, %{})
+      assert errors_on(changeset_2) == %{list: ["can't be blank"]}
+    end
+
+    test "list with enums, atom-based" do
+      schema = %{
+        list: [
+          type: {:array, :enum},
+          required: true,
+          rules: [values: [:active, :inactive], min: 1]
+        ]
+      }
+
+      changeset_1 = Goal.build_changeset(schema, %{"list" => ["active", "inactive"]})
+      assert changes_on(changeset_1) == %{list: [:active, :inactive]}
+
+      changeset_2 = Goal.build_changeset(schema, %{})
+      assert errors_on(changeset_2) == %{list: ["can't be blank"]}
+
+      changeset_3 = Goal.build_changeset(schema, %{list: []})
+      assert errors_on(changeset_3) == %{list: ["should have at least 1 item(s)"]}
+    end
+
+    test "list with enums, nested inside of map" do
+      data = %{
+        "id" => "1",
+        "nested_map" => %{
+          "key" => "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
+          "list" => ["active"]
+        }
+      }
+
+      schema = %{
+        id: [type: :integer],
+        nested_map: [
+          type: :map,
+          properties: %{
+            key: [type: :string, format: :uuid],
+            list: [type: {:array, :enum}, rules: [values: ["active", "inactive"]]]
+          }
+        ]
+      }
+
+      changeset = Goal.build_changeset(schema, data)
+
+      assert changes_on(changeset) == %{
+               id: 1,
+               nested_map: %{
+                 key: "f45fb959-b0f9-4a32-b6ca-d32bdb53ee8e",
+                 list: [:active]
+               }
+             }
+    end
+
     test "missing schema rules" do
       data = %{
         "string_1" => "world",
