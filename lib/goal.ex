@@ -20,7 +20,7 @@ defmodule Goal do
 
   ```elixir
   def deps do
-    [{:goal, "~> 1.0"}]
+    [{:goal, "~> 1.1"}]
   end
   ```
 
