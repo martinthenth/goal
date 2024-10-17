@@ -738,6 +738,19 @@ defmodule Goal do
   defp get_types(schema) do
     Enum.reduce(schema, %{}, fn {field, rules}, acc ->
       case Keyword.get(rules, :type, :any) do
+        {:array, :enum} ->
+          values =
+            rules
+            |> Keyword.get(:rules, [])
+            |> Keyword.get(:values, [])
+            |> Enum.map(&atomize/1)
+
+          Map.put(
+            acc,
+            field,
+            {:array, {:parameterized, {Ecto.Enum, Ecto.Enum.init(values: values)}}}
+          )
+
         :enum ->
           values =
             rules
@@ -870,6 +883,9 @@ defmodule Goal do
       when type in [:string, :integer, :decimal, :float, :boolean, :date, :time] ->
         validate_array_basic_field(changes, field, schema, type, acc)
 
+      {field, {:array, {:parameterized, _}}}, acc ->
+        validate_array_enum_field(field, schema, acc)
+
       {_field, _type}, acc ->
         acc
     end)
@@ -981,6 +997,16 @@ defmodule Goal do
       {:valid, changeset} ->
         {:valid, changeset}
     end
+  end
+
+  defp validate_array_enum_field(field, schema, changeset) do
+    item_rules =
+      schema
+      |> Map.get(field)
+      |> Keyword.get(:rules, [])
+      |> Keyword.delete(:values)
+
+    validate_fields(item_rules, field, changeset)
   end
 
   defp atomize(atom) when is_atom(atom), do: atom
