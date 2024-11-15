@@ -570,7 +570,11 @@ defmodule Goal do
     quote do
       properties = Enum.reduce(unquote(children), %{}, &Map.merge(&2, &1))
 
-      %{unquote(name) => [{:type, unquote(type)} | [properties: properties]]}
+      if properties == %{} do
+        %{unquote(name) => [type: unquote(type)]}
+      else
+        %{unquote(name) => [type: unquote(type), properties: properties]}
+      end
     end
   end
 
@@ -594,9 +598,13 @@ defmodule Goal do
     quote do
       properties = Enum.reduce(unquote(children), %{}, &Map.merge(&2, &1))
 
-      %{
-        unquote(name) => [{:type, unquote(type)} | [{:required, true} | [properties: properties]]]
-      }
+      if properties == %{} do
+        %{unquote(name) => [type: unquote(type), required: true]}
+      else
+        %{
+          unquote(name) => [type: unquote(type), required: true, properties: properties]
+        }
+      end
     end
   end
 

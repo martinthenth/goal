@@ -17,6 +17,10 @@ defmodule GoalTest do
     optional(:last_name, :string)
     required(:any_1)
     optional(:any_2)
+    optional(:fields1, :map)
+    required(:fields2, :map)
+    optional(:fields3, {:array, :map})
+    required(:fields4, {:array, :map})
   end
 
   defparams :negatives do
@@ -91,7 +95,11 @@ defmodule GoalTest do
                first_name: [type: :string],
                last_name: [type: :string],
                any_1: [type: :any, required: true],
-               any_2: [type: :any]
+               any_2: [type: :any],
+               fields1: [type: :map],
+               fields2: [type: :map, required: true],
+               fields3: [type: {:array, :map}],
+               fields4: [type: {:array, :map}, required: true]
              }
 
       assert schema(:index) == %{
@@ -145,6 +153,8 @@ defmodule GoalTest do
                action: nil,
                changes: %{},
                errors: [
+                 fields4: {"can't be blank", [validation: :required]},
+                 fields2: {"can't be blank", [validation: :required]},
                  any_1: {"can't be blank", [validation: :required]},
                  id: {"can't be blank", [validation: :required]}
                ],
@@ -156,16 +166,29 @@ defmodule GoalTest do
     test "changeset/2" do
       assert %Ecto.Changeset{
                action: nil,
-               changes: %{},
+               changes: %{
+                 id: 123,
+                 any_1: 123,
+                 fields2: %{"hello" => "world"},
+                 fields4: [%{"bye" => "world"}]
+               },
                errors: [],
                data: %{},
                valid?: true
-             } = changeset(:show, %{id: 123, any_1: 123})
+             } =
+               changeset(:show, %{
+                 id: 123,
+                 any_1: 123,
+                 fields2: %{"hello" => "world"},
+                 fields4: [%{"bye" => "world"}]
+               })
 
       assert %Ecto.Changeset{
                action: nil,
                changes: %{},
                errors: [
+                 fields4: {"can't be blank", [validation: :required]},
+                 fields2: {"can't be blank", [validation: :required]},
                  any_1: {"can't be blank", [validation: :required]},
                  id: {"can't be blank", [validation: :required]}
                ],
@@ -182,19 +205,42 @@ defmodule GoalTest do
                data: %{},
                valid?: true
              } =
-               changeset(:show, %{id: 123, any_1: 123, firstName: "Joan", lastName: "Of Arc"},
+               changeset(
+                 :show,
+                 %{
+                   id: 123,
+                   any_1: 123,
+                   firstName: "Joan",
+                   lastName: "Of Arc",
+                   fields2: %{"hello" => "world"},
+                   fields4: [%{"bye" => "world"}]
+                 },
                  recase_keys: [from: :camel_case]
                )
     end
 
     test "validate/3" do
-      assert validate(:show, %{id: 123, any_1: 123}) == {:ok, %{id: 123, any_1: 123}}
+      assert validate(:show, %{
+               id: 123,
+               any_1: 123,
+               fields2: %{"hello" => "world"},
+               fields4: [%{"bye" => "world"}]
+             }) ==
+               {:ok,
+                %{
+                  id: 123,
+                  any_1: 123,
+                  fields2: %{"hello" => "world"},
+                  fields4: [%{"bye" => "world"}]
+                }}
 
       assert {:error,
               %Ecto.Changeset{
                 action: :validate,
                 changes: %{},
                 errors: [
+                  fields4: {"can't be blank", [validation: :required]},
+                  fields2: {"can't be blank", [validation: :required]},
                   any_1: {"can't be blank", [validation: :required]},
                   id: {"can't be blank", [validation: :required]}
                 ],
@@ -202,13 +248,47 @@ defmodule GoalTest do
                 valid?: false
               }} = validate(:show, %{})
 
-      assert validate(:show, %{id: 123, firstName: "Jane", lastName: "Doe", any1: 123},
+      assert validate(
+               :show,
+               %{
+                 id: 123,
+                 firstName: "Jane",
+                 lastName: "Doe",
+                 any1: 123,
+                 fields2: %{"hello" => "world"},
+                 fields4: [%{"bye" => "world"}]
+               },
                recase_keys: [from: :camel_case]
-             ) == {:ok, %{id: 123, first_name: "Jane", last_name: "Doe", any_1: 123}}
+             ) ==
+               {:ok,
+                %{
+                  id: 123,
+                  first_name: "Jane",
+                  last_name: "Doe",
+                  any_1: 123,
+                  fields2: %{"hello" => "world"},
+                  fields4: [%{"bye" => "world"}]
+                }}
 
-      assert validate(:show, %{id: 123, user_id: 123, any_1: 123},
+      assert validate(
+               :show,
+               %{
+                 id: 123,
+                 user_id: 123,
+                 any_1: 123,
+                 fields2: %{"hello" => "world"},
+                 fields4: [%{"bye" => "world"}]
+               },
                recase_keys: [from: :camel_case]
-             ) == {:ok, %{id: 123, user_id: 123, any_1: 123}}
+             ) ==
+               {:ok,
+                %{
+                  id: 123,
+                  user_id: 123,
+                  any_1: 123,
+                  fields2: %{"hello" => "world"},
+                  fields4: [%{"bye" => "world"}]
+                }}
     end
   end
 
@@ -902,6 +982,26 @@ defmodule GoalTest do
                map: %{
                  string: "hello",
                  integer: 5
+               }
+             }
+    end
+
+    test "unstructured map" do
+      data = %{
+        "map" => %{
+          "string" => "hello",
+          "integer" => 5
+        }
+      }
+
+      schema = %{map: [type: :map]}
+
+      changeset = Goal.build_changeset(schema, data)
+
+      assert changes_on(changeset) == %{
+               map: %{
+                 "string" => "hello",
+                 "integer" => 5
                }
              }
     end
@@ -1787,12 +1887,20 @@ defmodule GoalTest do
       assert Goal.recase_keys(schema, params, opts) == %{first_name: "Jane", last_name: "Doe"}
     end
 
-    test "map" do
+    test "empty map" do
       schema = %{description: [type: :map, required: true]}
       params = %{"description" => %{}}
       opts = [recase_keys: [from: :camel_case]]
 
       assert Goal.recase_keys(schema, params, opts) == %{description: %{}}
+    end
+
+    test "non-empty map" do
+      schema = %{description: [type: :map]}
+      params = %{"description" => %{"hello" => "world"}}
+      opts = [recase_keys: [from: :camel_case]]
+
+      assert Goal.recase_keys(schema, params, opts) == %{description: %{"hello" => "world"}}
     end
 
     test "nested map" do
