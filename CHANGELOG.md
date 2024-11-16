@@ -1,3 +1,7 @@
+# 1.1.1
+
+- Fixes a regression where `:map` without rules returns an empty map instead of the user's input (https://github.com/martinthenth/goal/issues/112).
+
 # 1.1.0
 
 - Adds support for enum arrays (https://github.com/martinthenth/goal/pull/107 - by [@davorbadrov](https://github.com/davorbadrov))
