@@ -933,7 +933,13 @@ defmodule Goal do
       |> put_in([Access.key(:changes), Access.key(field)], Enum.reverse(changesets))
       |> Map.update!(:valid?, &Kernel.&&(&1, valid?))
     else
-      changeset
+      item_rules = Keyword.get(rules, :rules)
+
+      if item_rules do
+        validate_fields(item_rules, field, changeset)
+      else
+        changeset
+      end
     end
   end
 
