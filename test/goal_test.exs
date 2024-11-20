@@ -62,6 +62,8 @@ defmodule GoalTest do
         optional(:paws, :integer)
       end
     end
+
+    required(:list_of_maps, {:array, :map}, min: 1, max: 1)
   end
 
   defparams :enums do
@@ -144,7 +146,8 @@ defmodule GoalTest do
                      }
                    ]
                  }
-               ]
+               ],
+               list_of_maps: [type: {:array, :map}, required: true, min: 1, max: 1]
              }
     end
 
@@ -1165,7 +1168,8 @@ defmodule GoalTest do
       schema = %{
         list: [
           type: {:array, :map},
-          rules: [min: 1, max: 1]
+          rules: [min: 1, max: 1],
+          required: true
         ]
       }
 

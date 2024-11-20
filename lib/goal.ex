@@ -566,14 +566,19 @@ defmodule Goal do
 
   defmacro optional(name, type, opts) when type in [:map, {:array, :map}] do
     children = get_field_children(opts)
+    field_opts = get_field_options(opts)
 
     quote do
       properties = Enum.reduce(unquote(children), %{}, &Map.merge(&2, &1))
 
       if properties == %{} do
-        %{unquote(name) => [type: unquote(type)]}
+        %{unquote(name) => [{:type, unquote(type)} | unquote(field_opts)]}
       else
-        %{unquote(name) => [type: unquote(type), properties: properties]}
+        %{
+          unquote(name) => [
+            {:type, unquote(type)} | [{:properties, properties} | unquote(field_opts)]
+          ]
+        }
       end
     end
   end
@@ -594,15 +599,19 @@ defmodule Goal do
 
   defmacro required(name, type, opts) when type in [:map, {:array, :map}] do
     children = get_field_children(opts)
+    field_opts = get_field_options(opts)
 
     quote do
       properties = Enum.reduce(unquote(children), %{}, &Map.merge(&2, &1))
 
       if properties == %{} do
-        %{unquote(name) => [type: unquote(type), required: true]}
+        %{unquote(name) => [{:type, unquote(type)} | [{:required, true} | unquote(field_opts)]]}
       else
         %{
-          unquote(name) => [type: unquote(type), required: true, properties: properties]
+          unquote(name) => [
+            {:type, unquote(type)}
+            | [{:required, true} | [{:properties, properties} | unquote(field_opts)]]
+          ]
         }
       end
     end
@@ -619,6 +628,14 @@ defmodule Goal do
       {:__block__, _, contents} -> contents
       {_, _, _} -> [block_or_tuple]
       _ -> []
+    end
+  end
+
+  defp get_field_options(opts) do
+    if Keyword.has_key?(opts, :do) do
+      []
+    else
+      opts
     end
   end
 
