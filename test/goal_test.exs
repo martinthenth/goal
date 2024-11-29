@@ -62,6 +62,8 @@ defmodule GoalTest do
         optional(:paws, :integer)
       end
     end
+
+    required(:list_of_maps, {:array, :map}, min: 1, max: 1)
   end
 
   defparams :enums do
@@ -144,7 +146,8 @@ defmodule GoalTest do
                      }
                    ]
                  }
-               ]
+               ],
+               list_of_maps: [type: {:array, :map}, required: true, min: 1, max: 1]
              }
     end
 
@@ -1126,9 +1129,7 @@ defmodule GoalTest do
         ]
       }
 
-      schema = %{
-        list: [type: {:array, :map}]
-      }
+      schema = %{list: [type: {:array, :map}]}
 
       changeset = Goal.build_changeset(schema, data)
 
@@ -1161,6 +1162,25 @@ defmodule GoalTest do
                  %{string: "world", integer: 2}
                ]
              }
+    end
+
+    test "list of maps, min and max" do
+      schema = %{
+        list: [
+          type: {:array, :map},
+          rules: [min: 1, max: 1],
+          required: true
+        ]
+      }
+
+      data_1 = %{"list" => []}
+      data_2 = %{"list" => [%{"hello" => "world"}, %{"hello" => "world"}]}
+
+      changeset_1 = Goal.build_changeset(schema, data_1)
+      changeset_2 = Goal.build_changeset(schema, data_2)
+
+      assert errors_on(changeset_1) == %{list: ["should have at least 1 item(s)"]}
+      assert errors_on(changeset_2) == %{list: ["should have at most 1 item(s)"]}
     end
 
     test "list of maps, invalid type given" do
