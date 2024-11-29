@@ -1,3 +1,7 @@
+# 1.1.2
+
+- Fixes a bug when using `{:array, :map}` with rules where the rules are ignored (https://github.com/martinthenth/goal/pull/115).
+
 # 1.1.1
 
 - Fixes a regression where `:map` without rules returns an empty map instead of the user's input (https://github.com/martinthenth/goal/issues/112).
