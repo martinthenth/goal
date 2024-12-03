@@ -459,7 +459,9 @@ defmodule Goal do
       Returns the validated parameters or an error changeset.
       """
       @spec validate(Ecto.Changeset.t()) :: {:ok, map()} | {:error, Ecto.Changeset.t()}
-      def validate(%Changeset{valid?: true, changes: changes}), do: {:ok, changes}
+      def validate(%Changeset{valid?: true} = changeset),
+        do: {:ok, Changeset.apply_changes(changeset)}
+
       def validate(%Changeset{valid?: false} = changeset), do: {:error, changeset}
 
       @doc """
@@ -660,7 +662,7 @@ defmodule Goal do
     |> build_changeset(params)
     |> Map.put(:action, :validate)
     |> case do
-      %Changeset{valid?: true, changes: changes} -> {:ok, changes}
+      %Changeset{valid?: true} = changes -> {:ok, Changeset.apply_changes(changes)}
       %Changeset{valid?: false} = changeset -> {:error, changeset}
     end
   end
@@ -680,8 +682,9 @@ defmodule Goal do
   @spec build_changeset(schema(), params()) :: Changeset.t()
   def build_changeset(schema, params) do
     types = get_types(schema)
+    defaults = build_defaults(schema)
 
-    {%{}, types}
+    {defaults, types}
     |> Changeset.cast(params, Map.keys(types), force_changes: true)
     |> validate_required_fields(schema)
     |> validate_basic_fields(schema)
@@ -789,6 +792,15 @@ defmodule Goal do
 
         type ->
           Map.put(acc, field, type)
+      end
+    end)
+  end
+
+  defp build_defaults(schema) do
+    Enum.reduce(schema, %{}, fn {field, rules}, acc ->
+      case Keyword.get(rules, :default) do
+        nil -> acc
+        default -> Map.put_new(acc, field, default)
       end
     end)
   end

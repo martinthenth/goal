@@ -70,6 +70,11 @@ defmodule GoalTest do
     optional(:status, :enum, values: @statuses)
   end
 
+  defparams :defaults do
+    required(:status, :enum, values: @statuses, default: :pending)
+    optional(:name, :string, default: "The one who shall not be named")
+  end
+
   describe "__using__/1" do
     test "schema/0" do
       assert schema() == %{id: [type: :integer, required: true]}
@@ -292,6 +297,14 @@ defmodule GoalTest do
                   fields2: %{"hello" => "world"},
                   fields4: [%{"bye" => "world"}]
                 }}
+
+      assert validate(:defaults, %{}) == {
+               :ok,
+               %{status: :pending, name: "The one who shall not be named"}
+             }
+
+      assert validate(:defaults, %{status: :done, name: "Voldemort"}) ==
+               {:ok, %{status: :done, name: "Voldemort"}}
     end
   end
 
@@ -343,6 +356,12 @@ defmodule GoalTest do
       opts = [recase_keys: [from: :camel_case]]
 
       assert Goal.validate_params(schema, params, opts) == {:ok, %{}}
+    end
+
+    test "includes default value when one is not provider" do
+      schema = %{name: [type: :string, default: "Harry Potter"]}
+
+      assert Goal.validate_params(schema, %{}) == {:ok, %{name: "Harry Potter"}}
     end
   end
 
@@ -946,6 +965,19 @@ defmodule GoalTest do
       assert errors_on(changeset_2) == %{status: ["is invalid"]}
       assert changes_on(changeset_3) == %{status: :active}
       assert errors_on(changeset_4) == %{status: ["is invalid"]}
+    end
+
+    test "default" do
+      schema = %{
+        status: [type: :enum, values: [:active, :inactive], default: :active, required: true],
+        name: [type: :string]
+      }
+
+      data_5 = %{}
+
+      changeset_5 = Goal.build_changeset(schema, data_5)
+
+      assert data_on(changeset_5) == %{status: :active}
     end
 
     test "enum, string-based" do
