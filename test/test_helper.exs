@@ -10,6 +10,8 @@ defmodule Goal.Helpers do
       end)
     end)
   end
+
+  def data_on(%Ecto.Changeset{data: data}), do: data
 end
 
 defmodule Goal.DemoSchema do
