@@ -301,7 +301,7 @@ defmodule Goal do
   |                        | `:is`                       | exact string length                                                                                  |
   |                        | `:min`                      | minimum string length                                                                                |
   |                        | `:max`                      | maximum string length                                                                                |
-  |                        | `:trim`                     | oolean to remove leading and trailing spaces                                                         |
+  |                        | `:trim`                     | boolean to remove leading and trailing spaces                                                         |
   |                        | `:squish`                   | boolean to trim and collapse spaces                                                                  |
   |                        | `:format`                   | `:uuid`, `:email`, `:password`, `:url`                                                               |
   |                        | `:subset`                   | list of required strings                                                                             |
