@@ -689,6 +689,7 @@ defmodule Goal do
     |> validate_required_fields(schema)
     |> validate_basic_fields(schema)
     |> validate_nested_fields(types, schema)
+    |> validate_nullable_fields(schema)
   end
 
   @doc """
@@ -821,6 +822,23 @@ defmodule Goal do
       schema
       |> Map.get(field, [])
       |> validate_fields(field, changeset_acc)
+    end)
+  end
+
+  @spec validate_nullable_fields(Ecto.Changeset.t(), any()) :: any()
+  def validate_nullable_fields(%Changeset{changes: changes} = changeset, schema) do
+    Enum.reduce(schema, changeset, fn {field, rules}, acc ->
+      case Keyword.get(rules, :nullable) do
+        false ->
+          if is_nil(changes[field]) do
+            Ecto.Changeset.add_error(acc, field, "can't be nil")
+          else
+            acc
+          end
+
+        _ ->
+          acc
+      end
     end)
   end
 
