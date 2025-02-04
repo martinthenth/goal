@@ -825,19 +825,13 @@ defmodule Goal do
     end)
   end
 
-  @spec validate_nullable_fields(Ecto.Changeset.t(), any()) :: any()
-  def validate_nullable_fields(%Changeset{changes: changes} = changeset, schema) do
+  defp validate_nullable_fields(%Changeset{changes: changes} = changeset, schema) do
     Enum.reduce(schema, changeset, fn {field, rules}, acc ->
-      case Keyword.get(rules, :nullable) do
-        false ->
-          if is_nil(changes[field]) do
-            Ecto.Changeset.add_error(acc, field, "can't be nil")
-          else
-            acc
-          end
-
-        _ ->
-          acc
+      with false <- Keyword.get(rules, :nullable, true),
+           nil <- Map.get(changes, field, false) do
+        Changeset.add_error(acc, field, "can't be nil")
+      else
+        _ -> acc
       end
     end)
   end
