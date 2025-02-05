@@ -308,7 +308,7 @@ The field types and available validations are:
 |                        | `:is`                       | exact string length                                                                                  |
 |                        | `:min`                      | minimum string length                                                                                |
 |                        | `:max`                      | maximum string length                                                                                |
-|                        | `:trim`                     | boolean to remove leading and trailing spaces                                                         |
+|                        | `:trim`                     | boolean to remove leading and trailing spaces                                                        |
 |                        | `:squish`                   | boolean to trim and collapse spaces                                                                  |
 |                        | `:format`                   | `:uuid`, `:email`, `:password`, `:url`                                                               |
 |                        | `:subset`                   | list of required strings                                                                             |
@@ -340,6 +340,7 @@ The field types and available validations are:
 |                        | `:max`                      | maximum array length                                                                                 |
 |                        | `:is`                       | exact array length                                                                                   |
 | More basic types       |                             | See [Ecto.Schema](https://hexdocs.pm/ecto/Ecto.Schema.html#module-primitive-types) for the full list |
+| Custom Validations     | `:custom`                   | expects a function taking a field name, params map, and a changeset, returning a changeset           |
 
 All field types, excluding `:map` and `{:array, :map}`, can use `:equals`, `:subset`,
 `:included`, `:excluded` validations.

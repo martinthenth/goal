@@ -903,6 +903,12 @@ defmodule Goal do
       {:not_equal_to, integer}, acc ->
         validate_number(acc, field, not_equal_to: integer)
 
+      {:custom, custom_func}, acc when is_function(custom_func, 3) ->
+        case custom_func.(field, acc.changes, acc) do
+          %Changeset{} = changeset -> changeset
+          _ -> acc
+        end
+
       {_name, _setting}, acc ->
         acc
     end)
