@@ -1,10 +1,9 @@
-# Goal
-### NOTE- this is a maintained fork of [Goal](https://github.com/martinthenth/goal) with extra functionality
+# A maintained fork of [Goal](https://github.com/martinthenth/goal) with extra functionality
 
 [![CI](https://github.com/mtanca/goal/actions/workflows/elixir.yml/badge.svg)](https://github.com/mtanca/goal/actions/workflows/elixir.yml)
-[![Hex.pm](https://img.shields.io/hexpm/v/goal)](https://hex.pm/packages/goal)
-[![Hex.pm](https://img.shields.io/hexpm/dt/goal)](https://hex.pm/packages/goal)
-[![Hex.pm](https://img.shields.io/hexpm/l/goal)](https://github.com/mtanca/goal/blob/main/LICENSE)
+[![Hex.pm](https://img.shields.io/hexpm/v/m_goal)](https://hex.pm/packages/m_goal)
+[![Hex.pm](https://img.shields.io/hexpm/dt/m_goal)](https://hex.pm/packages/m_goal)
+[![Hex.pm](https://img.shields.io/hexpm/l/m_goal)](https://github.com/mtanca/m_goal/blob/main/LICENSE)
 
 Goal is a parameter validation library based on [Ecto](https://github.com/elixir-ecto/ecto).
 It can be used with JSON APIs, HTML controllers and LiveViews.
@@ -22,11 +21,11 @@ system's behavior.
 
 ## Installation
 
-Add `goal` to the list of dependencies in `mix.exs`:
+Add `m_goal` to the list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:goal, "~> 1.1"}]
+  [{:m_goal, "~> 1.2.2"}]
 end
 ```
 
