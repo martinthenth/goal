@@ -75,6 +75,36 @@ defmodule GoalTest do
     optional(:name, :string, default: "The one who shall not be named")
   end
 
+  defparams :nullable do
+    optional(:field1, :string, nullable: true)
+    optional(:field2, :string, nullable: false)
+    optional(:field3, :string, nullable: false)
+  end
+
+  defparams :custom_validation do
+    optional(:is_home_address?, :boolean)
+    optional(:age, :integer)
+
+    optional(:address, :string,
+      custom: fn field, params, changeset ->
+        # Example "required if" validation case where the `address` is only required when
+        # both `age` and `is_home_address?` are present
+        case params do
+          %{age: _age, is_home_address?: _is_home_address?} ->
+            if Map.has_key?(params, field),
+              do:
+                Ecto.Changeset.add_error(changeset, field, """
+                is required when age and is_home_address? are present
+                """),
+              else: changeset
+
+          _ ->
+            changeset
+        end
+      end
+    )
+  end
+
   describe "__using__/1" do
     test "schema/0" do
       assert schema() == %{id: [type: :integer, required: true]}
@@ -169,6 +199,16 @@ defmodule GoalTest do
                data: %{},
                valid?: false
              } = changeset(:show)
+
+      custom_validation_params = %{address: "1201 Tokyo", age: 21, is_home_address?: true}
+
+      assert %Ecto.Changeset{
+               action: nil,
+               changes: ^custom_validation_params,
+               errors: [address: {"is required when age and is_home_address? are present\n", []}],
+               data: %{},
+               valid?: false
+             } = changeset(:custom_validation, custom_validation_params)
     end
 
     test "changeset/2" do
@@ -305,6 +345,15 @@ defmodule GoalTest do
 
       assert validate(:defaults, %{status: :done, name: "Voldemort"}) ==
                {:ok, %{status: :done, name: "Voldemort"}}
+
+      assert {:error,
+              %Ecto.Changeset{
+                action: :validate,
+                changes: %{},
+                errors: [field2: {"can't be nil", []}],
+                data: %{},
+                valid?: false
+              }} = validate(:nullable, %{field2: nil, field3: "some value"})
     end
   end
 
