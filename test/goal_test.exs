@@ -75,6 +75,12 @@ defmodule GoalTest do
     optional(:name, :string, default: "The one who shall not be named")
   end
 
+  defparams :nullable do
+    optional(:field1, :string, nullable: true)
+    optional(:field2, :string, nullable: false)
+    optional(:field3, :string, nullable: false)
+  end
+
   describe "__using__/1" do
     test "schema/0" do
       assert schema() == %{id: [type: :integer, required: true]}
@@ -305,6 +311,15 @@ defmodule GoalTest do
 
       assert validate(:defaults, %{status: :done, name: "Voldemort"}) ==
                {:ok, %{status: :done, name: "Voldemort"}}
+
+      assert {:error,
+              %Ecto.Changeset{
+                action: :validate,
+                changes: %{},
+                errors: [field2: {"can't be nil", []}],
+                data: %{},
+                valid?: false
+              }} = validate(:nullable, %{field2: nil, field3: "some value"})
     end
   end
 

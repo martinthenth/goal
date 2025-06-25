@@ -689,6 +689,7 @@ defmodule Goal do
     |> validate_required_fields(schema)
     |> validate_basic_fields(schema)
     |> validate_nested_fields(types, schema)
+    |> validate_nullable_fields(schema)
   end
 
   @doc """
@@ -821,6 +822,17 @@ defmodule Goal do
       schema
       |> Map.get(field, [])
       |> validate_fields(field, changeset_acc)
+    end)
+  end
+
+  defp validate_nullable_fields(%Changeset{changes: changes} = changeset, schema) do
+    Enum.reduce(schema, changeset, fn {field, rules}, acc ->
+      with false <- Keyword.get(rules, :nullable, true),
+           nil <- Map.get(changes, field, false) do
+        Changeset.add_error(acc, field, "can't be nil")
+      else
+        _ -> acc
+      end
     end)
   end
 
