@@ -86,20 +86,19 @@ defmodule GoalTest do
     optional(:age, :integer)
 
     optional(:address, :string,
+      default: nil,
       custom: fn field, params, changeset ->
-        # Example "required if" validation case where the `address` is only required when
-        # both `age` and `is_home_address?` are present
+        # Example "required if" validation case where the `is_home_address?` is only required when
+        # both `age` and `address` are present
+
         case params do
           %{age: _age, is_home_address?: _is_home_address?} ->
-            if Map.has_key?(params, field),
-              do:
-                Ecto.Changeset.add_error(changeset, field, """
-                is required when age and is_home_address? are present
-                """),
-              else: changeset
+            changeset
 
           _ ->
-            changeset
+            Ecto.Changeset.add_error(changeset, :is_home_address?, """
+            is required when age and #{field} are present
+            """)
         end
       end
     )
@@ -200,12 +199,12 @@ defmodule GoalTest do
                valid?: false
              } = changeset(:show)
 
-      custom_validation_params = %{address: "1201 Tokyo", age: 21, is_home_address?: true}
+      custom_validation_params = %{address: "some address", age: 21}
 
       assert %Ecto.Changeset{
                action: nil,
                changes: ^custom_validation_params,
-               errors: [address: {"is required when age and is_home_address? are present\n", []}],
+               errors: [is_home_address?: {"is required when age and address are present\n", []}],
                data: %{},
                valid?: false
              } = changeset(:custom_validation, custom_validation_params)
