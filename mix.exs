@@ -1,7 +1,7 @@
 defmodule Goal.MixProject do
   use Mix.Project
 
-  @version "1.2.2"
+  @version "1.2.3"
   @source_url "https://github.com/mtanca/goal"
   @changelog_url "https://github.com/mtanca/goal/blob/main/CHANGELOG.md"
 

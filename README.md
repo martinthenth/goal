@@ -25,7 +25,7 @@ Add `m_goal` to the list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:m_goal, "~> 1.2.2"}]
+  [{:m_goal, "~> 1.2.3"}]
 end
 ```
 

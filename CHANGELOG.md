@@ -1,3 +1,12 @@
+# 1.2.3
+
+- Adds `key_aliases` rule (https://github.com/mtanca/m_goal/pull/3 - by [mtanca](https://github.com/mtanca))
+
+# 1.2.2
+
+- Adds `nullable` rule (https://github.com/mtanca/m_goal/pull/1 - by [mtanca](https://github.com/mtanca))
+- Adds `custom` rule (https://github.com/mtanca/m_goal/pull/2 - by [mtanca](https://github.com/mtanca))
+
 # 1.2.0
 
 - Adds support for default values (https://github.com/martinthenth/goal/pull/120 - by [laraujo7](https://github.com/laraujo7))
