@@ -411,6 +411,59 @@ defmodule GoalTest do
 
       assert Goal.validate_params(schema, %{}) == {:ok, %{name: "Harry Potter"}}
     end
+
+    test "valid :key_aliases when required" do
+      schema = %{
+        message_provider_id: [
+          type: :string,
+          required: true,
+          key_aliases: ["twilio_id", "sendgrid_id"]
+        ]
+      }
+
+      assert Goal.validate_params(schema, %{"twilio_id" => "twilio_id123"}) ==
+               {:ok, %{message_provider_id: "twilio_id123"}}
+    end
+
+    test "invalid :key_aliases when required" do
+      schema = %{
+        message_provider_id: [
+          type: :string,
+          required: true,
+          key_aliases: ["twilio_id", "sendgrid_id"]
+        ]
+      }
+
+      assert {:error,
+              %{
+                errors: [message_provider_id: {"can't be blank", [validation: :required]}]
+              }} =
+               Goal.validate_params(schema, %{"bad_substitute" => "twilio_id123"})
+    end
+
+    test "valid :key_aliases when optional" do
+      schema = %{
+        message_provider_id: [
+          type: :string,
+          key_aliases: ["twilio_id", "sendgrid_id"]
+        ]
+      }
+
+      assert {:ok, %{message_provider_id: "sendgrid_id123"}} =
+               Goal.validate_params(schema, %{"sendgrid_id" => "sendgrid_id123"})
+    end
+
+    test "invalid :key_aliases when optional" do
+      schema = %{
+        message_provider_id: [
+          type: :string,
+          key_aliases: ["twilio_id", "sendgrid_id"]
+        ]
+      }
+
+      assert {:ok, %{}} =
+               Goal.validate_params(schema, %{"bad_substitute" => "twilio_id123"})
+    end
   end
 
   describe "build_changeset/2" do

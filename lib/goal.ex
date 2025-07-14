@@ -683,6 +683,7 @@ defmodule Goal do
   def build_changeset(schema, params) do
     types = get_types(schema)
     defaults = build_defaults(schema)
+    params = key_aliases(schema, params)
 
     {defaults, types}
     |> Changeset.cast(params, Map.keys(types), force_changes: true)
@@ -822,6 +823,23 @@ defmodule Goal do
       schema
       |> Map.get(field, [])
       |> validate_fields(field, changeset_acc)
+    end)
+  end
+
+  defp key_aliases(schema, params) do
+    Enum.reduce(schema, params, fn {field, rules}, acc ->
+      case Keyword.get(rules, :key_aliases) do
+        aliases when is_list(aliases) ->
+          # credo:disable-for-next-line
+          if key_alias = Enum.find(aliases, &Map.has_key?(params, &1)) do
+            Map.put_new(acc, Atom.to_string(field), params[key_alias])
+          else
+            acc
+          end
+
+        _ ->
+          acc
+      end
     end)
   end
 

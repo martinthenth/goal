@@ -297,9 +297,25 @@ config :goal,
   url_regex: ~r/^[[:alpha:]]+$/
 ```
 
-### Available validations
+### Flexible key aliases
 
-The field types and available validations are:
+Goal allows you to map the value of an aliased key within a payload to a given field:
+
+```elixir
+use Goal
+
+defparams :message_confirmation_webhook do
+  required(:message_provider_id, :string, key_aliases: ["twilio_id", "podium_id", "sengrid_id"])
+  required(:delivered_at, :string, key_aliases: ["sent_at", "timestamp", "confirmed_at"])
+end
+
+iex(1)> MySchema.validate(:message_confirmation_webhook, %{"sengrid_id" => "1234", "timestamp" => "2024-11-01T14:00:00Z"})
+{:ok, %{message_provider_id: "1234", delivered_at: "2024-11-01T14:00:00Z"}}
+```
+
+### Available options
+
+The field types and available options are:
 
 | Field type             | Validations                 | Description                                                                                          |
 | ---------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------- |
@@ -340,58 +356,13 @@ The field types and available validations are:
 |                        | `:max`                      | maximum array length                                                                                 |
 |                        | `:is`                       | exact array length                                                                                   |
 | More basic types       |                             | See [Ecto.Schema](https://hexdocs.pm/ecto/Ecto.Schema.html#module-primitive-types) for the full list |
-| Custom Validations     | `:custom`                   | expects a function taking a field name, params map, and a changeset, returning a changeset           |
+| Custom validations     | `:custom`                   | expects a function taking a field name, params map, and a changeset, returning a changeset           |
+| Key aliases            | `:key_aliases`              | maps the value of any aliased key in a payload to a given field. expects a list of aliases           |
 
 All field types, excluding `:map` and `{:array, :map}`, can use `:equals`, `:subset`,
 `:included`, `:excluded` validations.
 
-## Benchmarks
 
-Run `mix deps.get` and then `mix run scripts/bench.exs` to run the benchmark on your computer.
-
-```zsh
-Operating System: macOS
-CPU Information: Apple M2 Pro
-Number of Available Cores: 10
-Available memory: 16 GB
-Elixir 1.16.2
-Erlang 26.2.1
-JIT enabled: true
-
-Benchmark suite executing with the following configuration:
-warmup: 5 s
-time: 10 s
-memory time: 5 s
-reduction time: 0 ns
-parallel: 1
-inputs: none specified
-Estimated total run time: 1 min 40 s
-
-Name                                       ips        average  deviation         median         99th %
-presence params (4 fields)            702.67 K        1.42 μs  ±1370.44%        1.29 μs        1.63 μs
-simple params (4 fields)              339.92 K        2.94 μs   ±367.42%        2.67 μs        4.96 μs
-flat params (12 fields)               115.59 K        8.65 μs    ±79.41%        8.04 μs       21.08 μs
-nested params (12 fields)             110.47 K        9.05 μs    ±88.77%        8.38 μs       39.88 μs
-deeply nested params (12 fields)      107.88 K        9.27 μs    ±85.37%        8.33 μs       40.58 μs
-
-Comparison:
-presence params (4 fields)            702.67 K
-simple params (4 fields)              339.92 K - 2.07x slower +1.52 μs
-flat params (12 fields)               115.59 K - 6.08x slower +7.23 μs
-nested params (12 fields)             110.47 K - 6.36x slower +7.63 μs
-deeply nested params (12 fields)      107.88 K - 6.51x slower +7.85 μs
-
-Memory usage statistics:
-
-Name                                Memory usage
-presence params (4 fields)               4.76 KB
-simple params (4 fields)                 7.95 KB - 1.67x memory usage +3.19 KB
-flat params (12 fields)                 25.36 KB - 5.33x memory usage +20.60 KB
-nested params (12 fields)               27.49 KB - 5.78x memory usage +22.73 KB
-deeply nested params (12 fields)        27.38 KB - 5.75x memory usage +22.62 KB
-
-**All measurements for memory usage were the same**
-```
 
 ## Credits
 
