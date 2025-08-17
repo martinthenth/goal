@@ -297,6 +297,8 @@ config :goal,
   url_regex: ~r/^[[:alpha:]]+$/
 ```
 
+**Note**: if you are using OTP 28+, you need to put the custom regexes configurations in the `config/runtime.exs` file.
+
 ### Available validations
 
 The field types and available validations are:
